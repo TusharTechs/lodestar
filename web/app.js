@@ -56,6 +56,9 @@ function initMap() {
     map.addLayer({ id: "sites", type: "circle", source: "sites", paint: {
       "circle-radius": ["interpolate", ["linear"], ["zoom"], 3, 5, 10, 9], "circle-color": ["match", ["get", "country"], "CD", C.teal, C.accent],
       "circle-stroke-color": "#fff", "circle-stroke-width": 2 } });
+    map.addLayer({ id: "sel", type: "circle", source: "sites", filter: ["==", ["get", "site_id"], ""], paint: {
+      "circle-radius": ["interpolate", ["linear"], ["zoom"], 3, 11, 10, 16], "circle-color": "rgba(0,0,0,0)",
+      "circle-stroke-color": C.gold, "circle-stroke-width": 3 } });
     map.addSource("geo", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
     map.addLayer({ id: "bld", type: "fill", source: "geo", filter: ["==", ["geometry-type"], "Polygon"], paint: {
       "fill-color": ["match", ["get", "cls"], "large", "#ffb703", "residential", "#48cae4", "#ade8f4"], "fill-opacity": .9, "fill-outline-color": "#023e8a" } });
@@ -75,10 +78,28 @@ function initMap() {
 function drawSites() {
   if (!mapReady) return;
   map.getSource("sites").setData({ type: "FeatureCollection", features: sites.map(s => ({ type: "Feature", properties: s, geometry: { type: "Point", coordinates: [s.lon, s.lat] } })) });
+  if (!current) fitAll();
+}
+
+function fitAll() {
+  if (!mapReady || !sites.length) return;
+  const b = new maplibregl.LngLatBounds();
+  sites.forEach(s => b.extend([s.lon, s.lat]));
+  const listOpen = !$("#sitelist").classList.contains("collapsed");
+  map.fitBounds(b, { padding: { top: 90, bottom: 60, left: listOpen && innerWidth >= 900 ? 290 : 40, right: 60 }, duration: 0, maxZoom: 6 });
+}
+
+function overview() {
+  current = null; currentReport = null;
+  document.querySelectorAll("#sitelist .it").forEach(el => el.classList.remove("on"));
+  if (mapReady) { map.setFilter("sel", ["==", ["get", "site_id"], ""]); map.getSource("geo").setData({ type: "FeatureCollection", features: [] }); fitAll(); }
+  renderLanding();
+  history.replaceState(null, "", "#explore");
 }
 
 function showOnMap(rep) {
   if (!mapReady) return;
+  map.setFilter("sel", ["==", ["get", "site_id"], rep.site.site_id]);
   const cam = { center: [rep.site.lon, rep.site.lat], zoom: 15.6 };
   if (location.search.includes("shot")) map.jumpTo(cam); else map.flyTo({ ...cam, speed: 1.8 });
   get(`/api/sites/${rep.site.site_id}/geo`).then(g => map.getSource("geo").setData(g)).catch(() => {});
@@ -89,9 +110,13 @@ async function loadSites() {
   drawSites();
   const by = {}; sites.forEach(s => (by[s.country] ||= []).push(s));
   const order = ["NG", "KE", "CD"].filter(k => by[k]).concat(Object.keys(by).filter(k => !["NG", "KE", "CD"].includes(k)));
-  $("#sitelist").innerHTML = order.map(cc => `<h4>${COUNTRY[cc] || cc}</h4>` + by[cc].map(s =>
-    `<div class="it" data-id="${s.site_id}"><span>${esc(s.name)} <small>${esc(s.admin1 || "")}</small></span>${s.country === "CD" ? '<span class="badge">metered</span>' : s.has_mill ? '<span class="badge warn">mill</span>' : s.has_market ? '<span class="badge warn">market</span>' : ""}</div>`).join("")).join("");
+  const dot = { NG: C.accent, KE: C.accent, CD: C.teal };
+  $("#sitelist").innerHTML = `<div class="slhead"><div><b>${sites.length} villages</b> <span class="muted">· ${order.length} countries</span></div><button id="slToggle" title="Show or hide the list">Hide</button></div><div class="slbody">` + order.map(cc => `<h4><i style="background:${dot[cc] || C.accent}"></i>${COUNTRY[cc] || cc}</h4>` + by[cc].map(s =>
+    `<div class="it" data-id="${s.site_id}"><span>${esc(s.name)} <small>${esc(s.admin1 || "")}</small></span>${s.country === "CD" ? '<span class="badge">metered</span>' : s.has_mill ? '<span class="badge warn">mill</span>' : s.has_market ? '<span class="badge warn">market</span>' : ""}</div>`).join("")).join("") + `</div>`;
   document.querySelectorAll("#sitelist .it").forEach(el => el.onclick = () => openSite(el.dataset.id));
+  $("#slToggle").onclick = () => { const c = $("#sitelist").classList.toggle("collapsed"); $("#slToggle").textContent = c ? "Show list" : "Hide"; };
+  $("#sitelist").classList.add("collapsed"); $("#slToggle").textContent = "Show list";
+  if (!current) fitAll();
   const m = location.hash.match(/^#explore\/(.+)$/); if (m) openSite(m[1]);
 }
 
@@ -126,12 +151,54 @@ async function openSite(id, rep) {
   renderReport(rep);
 }
 
+/* ---------------- landing ---------------- */
+async function renderLanding() {
+  const el = $("#report");
+  el.innerHTML = `<div class="landing">
+    <div class="kick">Global Energy Hackathon 2026 · Brief 03 · Predict mini-grid demand before building</div>
+    <h1>What P90 did for solar finance, Lodestar does for mini-grid demand.</h1>
+    <p class="lede">Pick any village. You get a demand forecast with a bankable range, a five-year growth curve, the drivers in plain words, a system size and a lender stress test, built from open data and checked against real meters.</p>
+    <div class="proof" id="proof"><div class="kpi"><div class="l">Loading</div><div class="v">…</div></div></div>
+    <div class="card live"><div class="livehead"><div><div class="kick" style="margin:0">Live example</div><h3>Mutwanga, DR Congo: forecast vs real meters</h3></div><button class="btn primary" onclick="openSite('cd-nk-mutwanga')">Open this forecast →</button></div>
+      <div class="chart small"><canvas id="mini"></canvas></div>
+      <p class="src">Forecast from building footprints and OpenStreetMap only; it never saw this site's meters. Orange band: P90–P10 range. Black line: what the meters recorded.</p></div>
+    <div class="paths">
+      <a class="path" href="#validation" onclick="showTab('validation');return false"><span class="ico">✓</span><b>Validated on real meters</b><span>How close the forecasts came, site by site, with the honest limits.</span></a>
+      <a class="path" href="#portfolio" onclick="showTab('portfolio');return false"><span class="ico">▦</span><b>Screen a portfolio</b><span>Which villages suit a mini-grid, solar home systems or the grid.</span></a>
+      <a class="path" href="#impact" onclick="showTab('impact');return false"><span class="ico">$</span><b>See what it's worth</b><span>Oversizing caught on real data, cost of power, and who pays.</span></a>
+    </div>
+    <div class="how"><div><b>1</b><span>Building footprints and OpenStreetMap show who could connect</span></div><div><b>2</b><span>20,000 scenarios of connections and appliance growth</span></div><div><b>3</b><span>A bankable range, system size and lender memo</span></div></div>
+  </div>`;
+  try {
+    const [m, v, pf, mut] = await Promise.all([get("/api/metrics"), get("/api/validation"), get("/api/portfolio"), get("/api/sites/cd-nk-mutwanga/report")]);
+    if (current) return;
+    const d = v.results.summary.decision_backtest;
+    const cop = pf.reduce((t, r) => t + (1 - r.cost_of_power_usd_kwh / r.cost_of_power_if_p10_usd_kwh), 0) / pf.length;
+    const cc = new Set(pf.map(r => r.country)).size;
+    $("#proof").innerHTML = [
+      [pct(m.accuracy.annual_coverage_p90_p10), "of real metered demand fell inside our range", "village site-years, open data only"],
+      ["−" + pct(1 - d.lodestar.abs_capacity_gap_kwp / d.desk.abs_capacity_gap_kwp), "capacity mismatch vs a desk estimate", "replaying real meter data"],
+      ["−" + pct(cop), "cost of power from right-sizing", "P50 instead of the optimistic case"],
+      [pf.length, `villages screened in ${cc} countries`, "in about 15 CPU-seconds"]].map(([v, l, s]) => `<div class="kpi"><div class="v">${v}</div><div class="l2">${l}</div><div class="s">${s}</div></div>`).join("");
+    const fan = mut.fan, k = a => a.map(x => x / 1000), act = new Array(fan.months.length).fill(null);
+    mut.actuals.months.forEach((mm, i) => { if (mm <= fan.months[fan.months.length - 1] && mut.actuals.total_kwh[i] > 0) act[mm] = mut.actuals.total_kwh[i] / 1000; });
+    mk("mini", { type: "line", data: { labels: fan.months, datasets: [
+      { label: "P10", data: k(fan.p10), borderWidth: 0, pointRadius: 0, backgroundColor: C.band, fill: "+1" },
+      { label: "P90", data: k(fan.p90), borderWidth: 0, pointRadius: 0, fill: false },
+      { label: "P50 forecast", data: k(fan.p50), borderColor: C.accent, borderWidth: 2.5, pointRadius: 0, fill: false },
+      { label: "Metered", data: act, borderColor: C.ink, borderWidth: 1.8, pointRadius: 0, spanGaps: true, fill: false }] },
+      options: { animation: { duration: 900 }, interaction: { mode: "index", intersect: false }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `${c.dataset.label}: ${fmt(c.raw, 1)} MWh` } } },
+        scales: { x: { ticks: { autoSkip: false, maxRotation: 0, callback: v => v % 12 === 0 ? (v === 0 ? "start" : `year ${v / 12}`) : "" }, grid: { display: false } }, y: { title: { display: true, text: "MWh / month" }, beginAtZero: true } } } });
+  } catch (e) { /* landing still works without the live numbers */ }
+}
+
 /* ---------------- report ---------------- */
 function renderReport(r, prior) {
   const h = r.headline, f = r.finance, isDrc = !!r.actuals;
   const b = r.features.buildings, p = r.features.pois || {};
   const flags = (r.warnings || []).filter(w => !/geojson capped|centre moved/.test(w));
   $("#report").innerHTML = `
+  <a href="#explore" class="back" onclick="overview();return false">← Overview</a>
   <div class="rhead"><div><h2>${esc(r.site.name)}</h2>
     <div class="sub">${esc(r.site.admin1 || "")} · ${esc(COUNTRY[r.site.country] || r.site.country || "")} · ${r.site.lat.toFixed(4)}, ${r.site.lon.toFixed(4)} · ${esc(r.region_label)} benchmarks</div></div>
     <div class="actions">
@@ -279,7 +346,7 @@ async function renderValidation() {
       <td>${yrs.map(y => `Y${y.year}: ${y.error >= 0 ? "+" : ""}${pct(y.error)} ${y.inside_band ? "✓ in band" : "✗ outside"}`).join("<br>")}</td>
       <td class="n">${pct(x.learning["6"].wape)} / ${pct(x.learning["6"].baseline_persistence_wape)}</td><td class="n">${pct(x.learning["12"].wape)} / ${pct(x.learning["12"].baseline_persistence_wape)}</td></tr>`;
   }).join("");
-  el.innerHTML = `<h1>Validation against real metered mini-grids</h1>
+  el.innerHTML = `<div class="kick">Validation · the brief's success metric</div><h1>Validation against real metered mini-grids</h1>
   <p>The organisers confirmed that no partner meter data is available for this brief, so we found a public one: monthly metered connections and consumption from three mini-grids in North Kivu, DRC, 2019–2024 (<a href="https://doi.org/10.7910/DVN/KPDREF" target="_blank">Lunanga, Stoop, Verpoorten & Desbureaux 2026, CC0</a>). Each site is forecast <b>leave-one-site-out</b>: growth shapes come from the other sites, consumption levels from pan-African AMDA benchmarks, and none of the held-out site's meter data is used.</p>
   <div class="card" style="border-color:var(--accent)"><h3>Headline test: open data only, held-out sites</h3>
     <p class="lede">The full pipeline a developer would use: building footprints and OpenStreetMap for the two village-scale sites, no census, no site meters. Footprint-to-customer ratios and growth shapes are taken from the <i>other</i> sites only.</p>
@@ -316,7 +383,7 @@ async function renderValidation() {
 function renderBureau() {
   const el = $("#bureaupage"); if (el.dataset.done) return;
   const opts = sites.map(s => `<option value="${s.site_id}">${esc(s.name)} (${s.country})</option>`).join("");
-  el.innerHTML = `<h1>The Demand Bureau: safe meter-data sharing between operators</h1>
+  el.innerHTML = `<div class="kick">Demand Bureau · safe meter-data sharing</div><h1>The Demand Bureau: safe meter-data sharing between operators</h1>
   <p>Credit bureaus solved a similar problem for lenders: no one shares data alone, but everyone gains when everyone does. The Demand Bureau applies that <b>give-to-get</b> model to mini-grid meters. Operators contribute site-month aggregates. In return they get regional benchmarks and sharper forecasts for their own pipeline, and lenders get calibrated P90s.</p>
   <div class="row2">
     <div class="card"><h3>What is shared</h3><p class="lede">Site-month aggregates only. No customer-level data, no names, no meter IDs.</p>
@@ -354,14 +421,14 @@ tariff_usd_kwh, outage_hours        (optional)</pre>
 /* ---------------- impact ---------------- */
 async function renderImpact() {
   const el = $("#impactpage"); if (el.dataset.done) return;
-  const [v, ec, pf, ps] = await Promise.all([get("/api/validation"), get("/api/economics"), get("/api/portfolio"), get("/api/personas")]);
+  const [v, ec, pf, ps] = await Promise.all([get("/api/validation"), get("/api/economics"), get("/api/portfolio"), get("/api/personas").catch(() => null)]);
   const R = v.results, D = R.decision_backtest || {}, S = (R.summary || {}).decision_backtest || {}, E = R.summary.end_to_end_village || {};
   const plan = { desk: "Desk estimate, single build", lodestar: "Lodestar: build at P50, expand on metered demand", hindsight: "Hindsight (perfect knowledge)" };
   const rows = Object.entries(D).map(([site, r]) => Object.entries(plan).map(([k, lab]) => { const x = r[k]; return `<tr class="${k === "lodestar" ? "rec" : ""}"><td>${site}</td><td>${lab}</td><td class="n">${fmt(x.final_kwp)}</td><td class="n">${k === "hindsight" ? "—" : (x.kwp_vs_hindsight_y3 >= 0 ? "+" : "") + pct(x.kwp_vs_hindsight_y3)}</td><td class="n">${usd(x.capex_usd)}</td><td class="n">${pct(x.idle_capacity_share_y3)}</td><td class="n">${pct(x.unserved_share)}</td><td class="n">${fmt(x.diesel_litres)}</td></tr>`; }).join("")).join("");
   const cats = {}; pf.forEach(r => (cats[r.category] ||= []).push(r));
   const a = S.desk || {}, b = S.lodestar || {};
   const cop = pf.reduce((t, r) => t + (1 - r.cost_of_power_usd_kwh / r.cost_of_power_if_p10_usd_kwh), 0) / pf.length;
-  el.innerHTML = `<h1>Impact: what better forecasts are worth</h1>
+  el.innerHTML = `<div class="kick">Impact</div><h1>Impact: what better forecasts are worth</h1>
   <p>The brief's metric is forecast error against metered demand (see <a href="#validation" onclick="showTab('validation');return false">Validation</a>: real demand inside our range in ${pct(E.annual_coverage)} of site-years, from open data alone). Here we turn that into decisions, money and people, using the same real meters.</p>
   <div class="grid4">
     <div class="kpi main"><div class="l">Capacity mismatch at year 3</div><div class="v">${pct(1 - b.abs_capacity_gap_kwp / a.abs_capacity_gap_kwp)} less</div><div class="s">${fmt(a.abs_capacity_gap_kwp)} → ${fmt(b.abs_capacity_gap_kwp)} kWp vs hindsight, two metered sites</div></div>
@@ -383,12 +450,12 @@ async function renderImpact() {
       <li><b>Less backup diesel when undersized:</b> at Lubero the desk build left ${fmt(D.Lubero ? D.Lubero.desk.unserved_mwh : 0)} MWh unserved (~${fmt(D.Lubero ? D.Lubero.desk.co2_t : 0)} t CO₂ if met by gensets) vs ${fmt(D.Lubero ? D.Lubero.lodestar.unserved_mwh : 0)} MWh (~${fmt(D.Lubero ? D.Lubero.lodestar.co2_t : 0)} t) with Lodestar's plan.</li>
       <li>Every right-sized solar mini-grid replaces kerosene and diesel; getting more of them financed is the largest effect, and the hardest to measure in 48 hours.</li></ul></div>
   </div>
-  <div class="card"><h3>Who we sell to first</h3>
+  ${ps ? `<div class="card"><h3>Who we sell to first</h3>
     <p class="lede">Each buyer group as one named person, scored 1–5 on urgency (whose head is most on fire), value / ability to pay and accessibility, plus who can feed the Demand Bureau with meter data. ${esc(ps.note)}</p>
     <table class="t"><tr><th>Persona</th>${ps.factors.map(f => `<th class="n">${esc(f[1])}</th>`).join("")}<th class="n">Buyer score</th><th>Role</th></tr>
     ${ps.personas.map(p => `<tr class="${p.role === "primary" ? "rec" : ""}"><td><b>${esc(p.group)}</b><br><span class="src">${esc(p.person)}</span></td>${ps.factors.map(f => `<td class="n" title="${esc(p.why[f[0]])}">${p.scores[f[0]]}</td>`).join("")}<td class="n"><b>${p.role === "beneficiary" ? "—" : p.buyer_score + "/15"}</b></td><td><span class="cat ${{ primary: "rbf", secondary: "anchor", later: "shs", beneficiary: "grid" }[p.role]}">${p.role}</span></td></tr>`).join("")}</table>
     <p class="small" style="margin-top:8px"><b>Go-to-market:</b> ${esc(ps.strategy)}</p>
-    <details class="small"><summary style="cursor:pointer">Evidence behind each score</summary>${ps.personas.map(p => `<p><b>${esc(p.group)}</b> · ${esc(p.job)}<br>${ps.factors.map(f => `<i>${esc(f[1].split(":")[0])}:</i> ${esc(p.why[f[0]])}`).join("<br>")}</p>`).join("")}</details></div>
+    <details class="small"><summary style="cursor:pointer">Evidence behind each score</summary>${ps.personas.map(p => `<p><b>${esc(p.group)}</b> · ${esc(p.job)}<br>${ps.factors.map(f => `<i>${esc(f[1].split(":")[0])}:</i> ${esc(p.why[f[0]])}`).join("<br>")}</p>`).join("")}</details></div>` : ""}
   <div class="card"><h3>Business model canvas</h3>
     <div class="bmc">
       <div class="c tall"><h4>Key partners</h4><ul><li>Mini-grid operators: meter data via the Demand Bureau</li><li>A neutral data steward (e.g. AMDA)</li><li>RBF programmes and electrification agencies (e.g. Nigeria REA / DARES)</li><li>Open-data providers: footprints, OpenStreetMap, NASA POWER, GridFinder</li></ul><p class="src">Proposed; none engaged yet.</p></div>
@@ -419,7 +486,7 @@ async function renderPortfolio() {
   const order = { rbf: 0, anchor: 1, grid: 2, shs: 3 };
   pf.sort((a, b) => order[a.category] - order[b.category] || b.y3_p50 - a.y3_p50);
   const cnt = c => pf.filter(r => r.category === c).length;
-  el.innerHTML = `<h1>Portfolio screener</h1>
+  el.innerHTML = `<div class="kick">Portfolio · for RBF programmes and DFIs</div><h1>Portfolio screener</h1>
   <p>For a results-based-financing programme or DFI: every settlement forecast the same way, ranked by what it should get. ${pf.length} villages, ${(pf.length * 0.76).toFixed(0)} CPU-seconds in total; the 1,000-site Nigerian DARES pipeline would take minutes.</p>
   <div class="grid4">
     <div class="kpi"><div class="l"><span class="cat rbf">Mini-grid, bankable with RBF</span></div><div class="v">${cnt("rbf")}</div><div class="s">tariff with a $600/connection grant ≤ regional average</div></div>
@@ -461,7 +528,7 @@ async function renderLedger() {
   const el = $("#ledgerpage");
   const [L, M] = await Promise.all([get("/api/ledger"), get("/api/metrics")]);
   const A = M.accuracy, T = M.track_record;
-  el.innerHTML = `<h1>Track record</h1>
+  el.innerHTML = `<div class="kick">Track record · accuracy, ledger, data freshness</div><h1>Track record</h1>
   <p>A forecasting service should be judged on its record, not its claims. These are the numbers we track and publish: how accurate the forecasts have been against real meters, every forecast we have issued, and how current each data input is.</p>
   <div class="grid4">
     <div class="kpi main"><div class="l">Real demand inside our range</div><div class="v">${pct(A.annual_coverage_p90_p10)}</div><div class="s">${A.n_site_years} site-years, target ${pct(A.target_coverage)} · ${pct(A.monthly_coverage_p90_p10)} of months</div></div>
@@ -484,7 +551,7 @@ async function renderLedger() {
 /* ---------------- method ---------------- */
 function renderMethod() {
   const el = $("#methodpage"); if (el.dataset.done) return;
-  el.innerHTML = `<h1>Method</h1>
+  el.innerHTML = `<div class="kick">Method · in plain words</div><h1>Method</h1>
   <div class="card"><h3>1 · Demand is connections × consumption, and both grow</h3>
   <p>Site energy in month <i>t</i> after commissioning is the sum over segments (households, businesses) of connected customers × kWh per connection, plus anchor loads:</p>
 <pre>E(t) = Σ_s  N_s · R_s / (1 + e^(−k_s (t − t0_s)))  ×  Q_s · (1 − a_s · e^(−t / τ_s))  +  anchors</pre>
@@ -509,5 +576,6 @@ function renderMethod() {
 
 initMap();
 loadSites();
+if (!/^#explore\/./.test(location.hash)) renderLanding();
 const t0 = location.hash.replace("#", "").split("/")[0];
 if (["validation", "bureau", "ledger", "method", "impact", "portfolio"].includes(t0)) showTab(t0);

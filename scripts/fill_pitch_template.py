@@ -27,7 +27,7 @@ FILL = {
   ("[From → To]", "+37% → +6%"),
   ("[Baseline today versus with your solution]",
    "year-3 oversizing at a metered site: desk estimate vs Lodestar plan (72% less mismatch)"),
-  ("[Number]", "−49%"),
+  ("[Number]", "−48%"),
   ("[Second outcome, e.g., cost saved or hours of power]",
    "cost of power when sized on P50 instead of the optimistic case (avg. of 20 villages)"),
  ],

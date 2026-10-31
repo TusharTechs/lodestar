@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
 <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
-<link href="style.css?v=6" rel="stylesheet">
+<link href="style.css?v=8" rel="stylesheet">
 </head>
 <body>
 <header class="top">
@@ -28,14 +28,11 @@
   <div class="mapcol">
     <div id="map"></div>
     <div class="sitelist" id="sitelist"></div>
-    <div class="maphint"><span class="legend-dot" style="background:#48cae4;margin-left:0"></span>dwelling <span class="legend-dot" style="background:#ffb703"></span>large / commercial building <span class="legend-dot" style="background:#e63946"></span>mill <span class="legend-dot" style="background:#d9a441"></span>market <span class="legend-dot" style="background:#8e7cc3"></span>school <span class="legend-dot" style="background:#2a9d8f"></span>clinic<br>Pick a village, or <b>click anywhere</b> on the map to forecast a new location (2–5 min: footprints, OpenStreetMap and NASA POWER are fetched live).</div>
+    <div class="maptip">Click anywhere on the map to forecast a new location</div>
+    <div class="maplegend"><span><i style="background:#48cae4"></i>dwelling</span><span><i style="background:#ffb703"></i>large building</span><span><i style="background:#e63946"></i>mill</span><span><i style="background:#d9a441"></i>market</span><span><i style="background:#8e7cc3"></i>school</span><span><i style="background:#2a9d8f"></i>clinic</span></div>
   </div>
   <div class="reportcol" id="report">
-    <div class="empty">
-      <h1>What P90 did for solar finance, Lodestar does for mini-grid demand.</h1>
-      <p>Pick a village on the map. You get a demand forecast with a range, a 5-year growth curve, the drivers in plain language, a load profile and system size, and a lender stress test, all from open data.</p>
-      <p class="muted">The three North Kivu (DRC) sites have real metered data. Their forecasts are made <i>without</i> it, then compared.</p>
-    </div>
+    <div class="landing" id="landing"></div>
   </div>
 </section>
 
@@ -48,6 +45,6 @@
 
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="app.js?v=6"></script>
+<script src="app.js?v=8"></script>
 </body>
 </html>
