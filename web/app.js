@@ -25,7 +25,7 @@ document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => showTab
 function showTab(t) {
   document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === t));
   document.querySelectorAll(".tab").forEach(s => s.classList.toggle("on", s.id === t));
-  if (t === "explore" && map) map.resize();
+  if (t === "explore" && mapReady) map.resize();
   if (t === "validation") renderValidation();
   if (t === "bureau") renderBureau();
   if (t === "ledger") renderLedger();
@@ -34,7 +34,11 @@ function showTab(t) {
 }
 
 /* ---------------- map ---------------- */
+let mapReady = false;
 function initMap() {
+  const webgl = (() => { try { const c = document.createElement("canvas"); return !!(c.getContext("webgl2") || c.getContext("webgl")); } catch (e) { return false; } })();
+  try { if (!window.maplibregl || !webgl) throw new Error("WebGL unavailable"); }
+  catch (e) { $("#map").innerHTML = '<div style="position:absolute;left:280px;right:16px;top:40%;color:#cfd8dc">The map needs WebGL, which this browser does not provide. Everything else works: pick a village from the list.</div>'; $("#map").style.background = "#17252e"; return; }
   map = new maplibregl.Map({
     container: "map",
     style: { version: 8, sources: {
@@ -52,7 +56,7 @@ function initMap() {
       "circle-stroke-color": "#fff", "circle-stroke-width": 2 } });
     map.addSource("geo", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
     map.addLayer({ id: "bld", type: "fill", source: "geo", filter: ["==", ["geometry-type"], "Polygon"], paint: {
-      "fill-color": ["match", ["get", "cls"], "large", C.gold, "residential", "#7fb3d5", "#c9d6de"], "fill-opacity": .85 } });
+      "fill-color": ["match", ["get", "cls"], "large", "#ffb703", "residential", "#48cae4", "#ade8f4"], "fill-opacity": .9, "fill-outline-color": "#023e8a" } });
     map.addLayer({ id: "poi", type: "circle", source: "geo", filter: ["==", ["geometry-type"], "Point"], paint: {
       "circle-radius": 6, "circle-color": ["match", ["get", "poi_type"], "mill", "#e63946", "market", C.gold, "school", "#8e7cc3", "health", "#2a9d8f", "#ffffff"],
       "circle-stroke-color": C.ink, "circle-stroke-width": 1.5 } });
@@ -61,13 +65,26 @@ function initMap() {
       new maplibregl.Popup().setLngLat(e.lngLat).setHTML(`<b>${esc(p.poi_type)}</b><br>${esc(p.name || "")}`).addTo(map); });
     map.on("click", e => { if (e.defaultPrevented) return; askForecast(e.lngLat); });
     ["sites", "poi"].forEach(l => { map.on("mouseenter", l, () => map.getCanvas().style.cursor = "pointer"); map.on("mouseleave", l, () => map.getCanvas().style.cursor = ""); });
-    loadSites();
+    mapReady = true; drawSites();
+    if (currentReport) showOnMap(currentReport);
   });
+}
+
+function drawSites() {
+  if (!mapReady) return;
+  map.getSource("sites").setData({ type: "FeatureCollection", features: sites.map(s => ({ type: "Feature", properties: s, geometry: { type: "Point", coordinates: [s.lon, s.lat] } })) });
+}
+
+function showOnMap(rep) {
+  if (!mapReady) return;
+  const cam = { center: [rep.site.lon, rep.site.lat], zoom: 15.6 };
+  if (location.search.includes("shot")) map.jumpTo(cam); else map.flyTo({ ...cam, speed: 1.8 });
+  get(`/api/sites/${rep.site.site_id}/geo`).then(g => map.getSource("geo").setData(g)).catch(() => {});
 }
 
 async function loadSites() {
   sites = await get("/api/sites");
-  map.getSource("sites").setData({ type: "FeatureCollection", features: sites.map(s => ({ type: "Feature", properties: s, geometry: { type: "Point", coordinates: [s.lon, s.lat] } })) });
+  drawSites();
   const by = {}; sites.forEach(s => (by[s.country] ||= []).push(s));
   const order = ["NG", "KE", "CD"].filter(k => by[k]).concat(Object.keys(by).filter(k => !["NG", "KE", "CD"].includes(k)));
   $("#sitelist").innerHTML = order.map(cc => `<h4>${COUNTRY[cc] || cc}</h4>` + by[cc].map(s =>
@@ -103,8 +120,7 @@ async function openSite(id, rep) {
   $("#report").innerHTML = `<div class="empty"><h2><span class="spinner"></span>Loading forecast…</h2></div>`;
   try { rep = rep || await get(`/api/sites/${id}/report`); } catch (e) { $("#report").innerHTML = `<div class="flag">${esc(e.message)}</div>`; return; }
   currentReport = rep;
-  map.flyTo({ center: [rep.site.lon, rep.site.lat], zoom: 14.2, speed: 1.6 });
-  get(`/api/sites/${id}/geo`).then(g => map.getSource("geo").setData(g)).catch(() => {});
+  showOnMap(rep);
   renderReport(rep);
 }
 
@@ -363,5 +379,6 @@ function renderMethod() {
 }
 
 initMap();
+loadSites();
 const t0 = location.hash.replace("#", "").split("/")[0];
 if (["validation", "bureau", "ledger", "method"].includes(t0)) showTab(t0);

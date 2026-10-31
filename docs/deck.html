@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Lodestar · pitch deck</title>
+<style>
+@page { size: 13.333in 7.5in; margin: 0; }
+* { box-sizing: border-box; }
+body { margin: 0; font: 15pt/1.35 "Helvetica Neue", Arial, sans-serif; color: #17252e; }
+.s { width: 13.333in; height: 7.5in; padding: 0.45in 0.6in; position: relative; page-break-after: always; overflow: hidden; background: #f6f4ef; }
+.s.dark { background: #17252e; color: #fff; }
+h1 { font: 700 34pt/1.08 Georgia, serif; margin: 0 0 10px; letter-spacing: -.01em; }
+h2 { font: 700 26pt/1.1 Georgia, serif; margin: 0 0 14px; }
+.kick { font-size: 11pt; letter-spacing: .14em; text-transform: uppercase; color: #c4552d; font-weight: 700; margin-bottom: 8px; }
+.dark .kick { color: #d9a441; }
+.muted { color: #6a7b85; } .dark .muted { color: #9fb0b8; }
+.grid { display: grid; gap: 18px; }
+.stat b { display: block; font: 700 30pt Georgia, serif; color: #c4552d; line-height: 1.05; }
+.dark .stat b { color: #f2b48f; }
+.stat { font-size: 12.5pt; }
+.card { background: #fff; border: 1px solid #dfe5e8; border-radius: 6px; padding: 14px 16px; }
+.dark .card { background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.15); }
+.card h3 { margin: 0 0 6px; font: 700 14pt Georgia, serif; }
+ul { margin: 4px 0; padding-left: 20px; } li { margin: 3px 0; }
+.small { font-size: 11pt; } .xs { font-size: 9pt; }
+.foot { position: absolute; left: .6in; right: .6in; bottom: .25in; font-size: 8.5pt; color: #6a7b85; display: flex; justify-content: space-between; }
+.dark .foot { color: #9fb0b8; }
+img { display: block; }
+.tag { display: inline-block; font-size: 10pt; padding: 2px 9px; border-radius: 10px; background: #e5f1ee; color: #2a7d6e; margin-right: 4px; }
+</style></head><body>
+
+<!-- 1 -->
+<section class="s dark">
+  <div class="kick">Global Energy Hackathon 2026 · Brief 03 · Digital Solutions &amp; AI</div>
+  <h1 style="font-size:44pt;max-width:10.5in">What P90 did for solar finance,<br>Lodestar does for mini-grid demand.</h1>
+  <p class="muted" style="font-size:16pt;max-width:9.5in;margin-top:6px">Developers must size a mini-grid before a single meter exists. Today they guess, and lenders can't price a guess.</p>
+  <div class="grid" style="grid-template-columns:repeat(4,1fr);margin-top:34px">
+    <div class="stat"><b>217,000</b>mini-grids needed to serve 490 million people by 2030, $127B <span class="muted">(ESMAP)</span></div>
+    <div class="stat"><b>65%</b>error of survey-based demand estimates per customer <span class="muted">(CrossBoundary Innovation Lab)</span></div>
+    <div class="stat"><b>12.5% → 6.1%</b>IRR of a 30 kW site when oversized by 100% <span class="muted">(CrossBoundary)</span></div>
+    <div class="stat"><b>None</b>of the open tools we found combine a demand <i>range</i>, a <i>growth</i> curve and a lender view, validated against meters</div>
+  </div>
+  <div class="card" style="margin-top:34px;max-width:11.6in"><b>Who:</b> mini-grid developers planning sites in unelectrified villages (Nigeria, Kenya, DRC first). <b>Who pays:</b> the lenders, DFIs and results-based-financing programmes that fund them. <b>Who benefits:</b> households and businesses that get a system sized to them, at a tariff they can afford, without evening brownouts.</div>
+  <div class="foot"><span>Team Lodestar · Tushar Agarwal</span><span>github.com/TusharTechs/lodestar</span></div>
+</section>
+
+<!-- 2 -->
+<section class="s">
+  <div class="kick">The solution · built this weekend</div>
+  <h2>Click a village. Get a bankable demand forecast.</h2>
+  <div class="grid" style="grid-template-columns:3.6in 1fr;gap:22px">
+    <div><img src="img/footprints_mutwanga.png" style="width:3.6in;height:3.6in;object-fit:cover;border-radius:6px">
+      <p class="xs muted" style="margin:4px 0 0">Mutwanga (DRC): 11,400 open building footprints → ~4,600 potential households, 377 businesses; schools, clinic, market, mill from OpenStreetMap.</p></div>
+    <div style="display:flex;gap:14px;align-items:flex-start"><img src="img/app_report.png" style="height:4.15in;border-radius:6px;border:1px solid #dfe5e8"><div class="small"><p style="margin-top:0"><b>Year-3 demand 15.2 MWh/month</b> (P90 6.5, P10 41.0), forecast from footprints and OpenStreetMap alone.</p><p>The black line is the site's <b>real metered demand</b>, which the model never saw.</p><p class="muted">Below in the report: driver waterfall, load profile, sizing options, IRR distribution and cash flow at P90/P50/P10.</p></div></div>
+  </div>
+  <div class="grid small" style="grid-template-columns:repeat(4,1fr);gap:12px;margin-top:12px">
+    <div><b>Range, not a point:</b> P90/P50/P10 from 20,000 Monte Carlo draws</div>
+    <div><b>Growth:</b> connections × kWh per connection, months 0–60</div>
+    <div><b>Drivers in plain language</b>, each tagged calibrated / benchmark / assumption</div>
+    <div><b>Lender view:</b> sizing, grant needed, debt safe on P90, memo, HOMER 8760</div>
+  </div>
+  <div class="foot"><span>Open data only: VIDA/Google/Microsoft/OSM buildings · OpenStreetMap · GridFinder · NASA POWER · RAMP archetypes · AMDA 2024</span><span>2 / 5</span></div>
+</section>
+
+<!-- 3 -->
+<section class="s">
+  <div class="kick">Proof · the brief's metric: error vs metered demand on held-out sites</div>
+  <h2>Validated against real meters, using open data alone.</h2>
+  <div class="grid" style="grid-template-columns:1fr 3.4in;gap:22px">
+    <div><img src="validation/drc_end_to_end.png" style="width:100%;border-radius:6px;border:1px solid #dfe5e8;background:#fff">
+      <p class="small" style="margin-top:8px">No partner meter data was available, so we found a public CC0 panel: three metered mini-grids in North Kivu, DRC, 2019–2024 (Lunanga et al. 2026). Each village site is forecast with <b>no census and none of its own meters</b>; calibration ratios and growth shapes come from the <i>other</i> sites only.</p></div>
+    <div class="grid" style="gap:12px;align-content:start">
+      <div class="card stat"><b>5 of 6</b>site-years of metered energy inside the P90–P10 band (target 80%)</div>
+      <div class="card stat"><b>81%</b>of metered months inside the band</div>
+      <div class="card stat"><b>−26% / −29%</b>year-3 (sizing-year) error, Lubero / Mutwanga · ref. 37% per-site ML (Allee et al.)</div>
+      <div class="xs muted">Honest limits, all shown in the app: two village sites is method validation; a census-based flat estimate scored 36% on them but gives no range; after 12 metered months, shocks (Mutwanga's conflict collapse) make persistence the better predictor.</div>
+    </div>
+  </div>
+  <div class="foot"><span>Reproduce: python scripts/validate_drc.py</span><span>3 / 5</span></div>
+</section>
+
+<!-- 4 -->
+<section class="s">
+  <div class="kick">Feasibility, cost &amp; who pays</div>
+  <h2>A trust layer the sector can afford, and that improves as it's used.</h2>
+  <div class="grid" style="grid-template-columns:1fr 1fr 1fr;gap:16px">
+    <div class="card"><h3>Who pays</h3><ul class="small">
+      <li><b>Free</b> single-site forecasts (adoption)</li>
+      <li><b>Bankable Demand Report</b> per site for developers and lenders (proposed ~$300, under 0.1% of a ~$585k mini-grid)</li>
+      <li><b>Portfolio screening</b> subscriptions for DFIs and RBF programmes</li>
+      <li>Households pay nothing; each report checks their bill against the AMDA ARPU benchmark</li></ul>
+      <p class="xs muted">Running cost: open data, no API keys, runs on a laptop or a free cloud tier.</p></div>
+    <div class="card"><h3>Demand Bureau: safe meter-data sharing</h3><ul class="small">
+      <li><b>Give-to-get</b>, borrowed from credit bureaus: share site-month aggregates, get benchmarks and narrower bands</li>
+      <li>No customer data; release only cells with ≥3 sites from ≥2 operators</li>
+      <li>Federated option: share fitted parameters, not series</li>
+      <li>Neutral steward (e.g. AMDA); a pooling clause in RBF grants seeds it</li></ul></div>
+    <div class="card"><h3>Forecast ledger</h3><p class="small">Borrowed from weather-forecast verification and clinical-trial registries: every forecast is <b>hashed and timestamped before the site is built</b>, then scored publicly when meters report. Trust earned in the open, not claimed.</p></div>
+  </div>
+  <div class="card" style="margin-top:16px"><h3>6–18 months</h3>
+    <div class="grid small" style="grid-template-columns:repeat(4,1fr);gap:14px">
+      <div><b>M0–3</b><br>Backtest 2–3 operators' historical meters under the Bureau protocol</div>
+      <div><b>M3–6</b><br>Pre-register forecasts for 10 sites before commissioning</div>
+      <div><b>M6–12</b><br>Score them publicly; integrate with one RBF programme's site validation</div>
+      <div><b>M12–18</b><br>5 countries; paid reports to lenders · DTECH 2027 MVP milestone</div></div></div>
+  <div class="foot"><span>Biggest risk: thin metered data. Tested early by the M0–3 operator backtest; mitigated by the Bureau and the ledger.</span><span>4 / 5</span></div>
+</section>
+
+<!-- 5 -->
+<section class="s dark">
+  <div class="kick">Scale &amp; impact</div>
+  <h2>Built for Africa first. Works anywhere there are rooftops.</h2>
+  <div class="grid" style="grid-template-columns:1fr 1fr;gap:22px">
+    <div class="card"><h3>How it travels</h3><ul class="small">
+      <li>Building footprints and OpenStreetMap cover all of Africa, plus South/Southeast Asia and Latin America</li>
+      <li>Demoed in Nigeria and Kenya, validated in DRC; a new country needs only its regional benchmark, then Bureau data calibrates it</li>
+      <li>Open source and self-hostable: data sovereignty for governments, no vendor lock-in</li>
+      <li>Flags settlements too small for a mini-grid (solar home systems instead) and sites near the grid</li></ul></div>
+    <div class="card"><h3>Access · Affordability · Availability</h3><ul class="small">
+      <li><b>Access:</b> a defensible P90 is what gets the next site financed</li>
+      <li><b>Affordability:</b> right-sizing avoids stranded capital that ends up in the tariff. Every 10% of avoidable oversizing across the 217k mini-grids needed is ~$12.7B of capital (on ESMAP's $127B; illustrative)</li>
+      <li><b>Availability:</b> sizing against the range, not a guess, prevents the evening brownouts of undersized systems</li></ul></div>
+  </div>
+  <p style="font:700 22pt/1.25 Georgia,serif;margin:30px 0 0;max-width:11in">Lodestar makes demand bankable, so the next 200,000 mini-grids get built at the right size.</p>
+  <p class="muted small" style="margin-top:10px"><b style="color:#fff">Next:</b> 2–3 operators for the M0–3 backtest, one RBF programme as pilot partner, and a neutral host for the Demand Bureau.</p>
+  <div class="foot"><span>Team Lodestar · Tushar Agarwal · github.com/TusharTechs/lodestar</span><span>5 / 5</span></div>
+</section>
+</body></html>
