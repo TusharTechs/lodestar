@@ -16,6 +16,7 @@ CACHE = ROOT / "data" / "cache"
 OVP_CACHE = CACHE / "overpass"
 GRID_DIR = ROOT / "data" / "raw" / "large" / "gridfinder"
 SITES = ROOT / "data" / "sites"
+GEO = ROOT / "data" / "geo"  # small committed copies of the VIDA row-group index and clipped GridFinder lines
 UA = {"User-Agent": "Lodestar-hackathon/0.1 (geospatial feature pipeline)"}
 OVERPASS = ["https://maps.mail.ru/osm/tools/overpass/api/interpreter", "https://overpass-api.de/api/interpreter",
             "https://overpass.kumi.systems/api/interpreter"]
@@ -60,7 +61,7 @@ _idx_cache = {}
 
 def _vida_index():
     if not _idx_cache:
-        for p in sorted(CACHE.glob("vida_index_*.parquet")):
+        for p in sorted(CACHE.glob("vida_index_*.parquet")) or sorted(GEO.glob("vida_index_*.parquet")):
             _idx_cache[p.stem.split("_")[-1]] = pd.read_parquet(p)
     return _idx_cache
 
@@ -210,6 +211,8 @@ def admin1_of(lat, lon):
 
 # ------------------------------------------------------------------ grid
 GRID_PARQUET = GRID_DIR / "grid_ng_ke.parquet"
+if not GRID_PARQUET.exists():  # deployed copy (committed): data/geo/
+    GRID_PARQUET = GEO / "grid_ng_ke.parquet"
 _grid = None
 
 

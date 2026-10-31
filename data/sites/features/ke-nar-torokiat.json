@@ -1,0 +1,62 @@
+{
+ "site_id": "ke-nar-torokiat",
+ "name": "Torokiat",
+ "country": "KE",
+ "admin1": "Narok",
+ "lat": -0.8348825,
+ "lon": 35.6952477,
+ "radius_m": 1500,
+ "buildings": {
+  "count": 1828,
+  "total_area_m2": 48072.4,
+  "median_area_m2": 21.7,
+  "n_small": 1339,
+  "n_residential": 472,
+  "n_large": 17,
+  "density_per_km2": 258.6,
+  "source": "VIDA Google-Microsoft-OSM Open Buildings (source.coop), areas computed in local UTM"
+ },
+ "pois": {
+  "school": 0,
+  "health": 0,
+  "market": 0,
+  "worship": 0,
+  "shop": 0,
+  "mill": 0,
+  "telecom": 0,
+  "fuel": 0,
+  "bank": 0,
+  "water_pump": 0,
+  "other_commercial": 0
+ },
+ "grid": {
+  "dist_km": 12.697,
+  "electrified_target_frac": 0.0
+ },
+ "road": {
+  "dist_major_km": 2.821
+ },
+ "population": {
+  "worldpop": null
+ },
+ "solar": {
+  "ghi_annual": 5.779,
+  "ghi_monthly": [
+   6.184,
+   6.568,
+   6.386,
+   5.731,
+   5.606,
+   5.169,
+   5.168,
+   5.404,
+   5.951,
+   5.879,
+   5.54,
+   5.808
+  ],
+  "units": "kWh/m2/day"
+ },
+ "warnings": [],
+ "fetched_at": "2026-10-31T09:45:04+00:00"
+}

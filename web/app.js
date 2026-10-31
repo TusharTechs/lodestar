@@ -247,7 +247,7 @@ async function runBureauDemo(r) {
 async function renderValidation() {
   const el = $("#valpage"); if (el.dataset.done) return;
   let v; try { v = await get("/api/validation"); } catch (e) { el.innerHTML = `<div class="flag">Validation results unavailable: ${esc(e.message)}</div>`; return; }
-  const R = v.results, s = R.summary.village_sites, a = R.summary.all_sites;
+  const R = v.results, s = R.summary.village_sites, a = R.summary.all_sites, E = R.summary.end_to_end_village || {};
   const siteRows = Object.entries(R.sites).map(([n, x]) => {
     const yrs = x.day0.years || [];
     return `<tr><td><b>${n}</b><br><span class="src">${esc(R.notes[n] || "")}</span></td><td class="n">${x.months_observed}</td><td class="n">${pct(x.day0.wape)}</td><td class="n">${pct(x.day0.coverage_p90_p10)}</td>
@@ -256,19 +256,30 @@ async function renderValidation() {
   }).join("");
   el.innerHTML = `<h1>Validation against real metered mini-grids</h1>
   <p>The organisers confirmed that no partner meter data is available for this brief, so we found a public one: monthly metered connections and consumption from three mini-grids in North Kivu, DRC, 2019–2024 (<a href="https://doi.org/10.7910/DVN/KPDREF" target="_blank">Lunanga, Stoop, Verpoorten & Desbureaux 2026, CC0</a>). Each site is forecast <b>leave-one-site-out</b>: growth shapes come from the other sites, consumption levels from pan-African AMDA benchmarks, and none of the held-out site's meter data is used.</p>
-  <div class="grid4">
-    <div class="kpi main"><div class="l">Village site-years inside P90–P10</div><div class="v">${pct(s.day0_annual_coverage)}</div><div class="s">${s.n_site_years} site-years, target 80% (calibrated)</div></div>
-    <div class="kpi"><div class="l">Months inside P90–P10</div><div class="v">${pct(s.day0_coverage)}</div><div class="s">village sites, monthly metered values</div></div>
-    <div class="kpi"><div class="l">Median-forecast error, annual</div><div class="v">${pct(s.day0_annual_abs_error)}</div><div class="s">village sites, years 1–3, day 0</div></div>
-    <div class="kpi"><div class="l">Flat desk estimate, annual error</div><div class="v">${pct(s.baseline_flat_annual_abs_error)}</div><div class="s">benchmark kWh × mature uptake; gives no range</div></div>
-  </div>
-  <div class="card"><h3>Forecast vs metered actuals</h3><p class="lede">Left: day 0, with no site data. Middle and right: after the operator shares 6 or 12 metered months (Demand Bureau update).</p>
+  <div class="card" style="border-color:var(--accent)"><h3>Headline test: open data only, held-out sites</h3>
+    <p class="lede">The full pipeline a developer would use: building footprints and OpenStreetMap for the two village-scale sites, no census, no site meters. Footprint-to-customer ratios and growth shapes are taken from the <i>other</i> sites only.</p>
+    <div class="grid4">
+      <div class="kpi main"><div class="l">Site-years inside P90–P10</div><div class="v">${pct(E.annual_coverage)}</div><div class="s">${E.n_site_years} village site-years, target 80%</div></div>
+      <div class="kpi"><div class="l">Months inside P90–P10</div><div class="v">${pct(E.monthly_coverage)}</div><div class="s">individual metered months</div></div>
+      <div class="kpi"><div class="l">Year-3 error (sizing year)</div><div class="v">${R.end_to_end ? Object.values(R.end_to_end).map(e => pct(e.years.find(y => y.year === 3)?.error)).join(" / ") : "n/a"}</div><div class="s">${Object.keys(R.end_to_end || {}).join(" / ")}, P50 vs metered</div></div>
+      <div class="kpi"><div class="l">Annual error, years 1–3</div><div class="v">${pct(E.annual_abs_error)}</div><div class="s">mean absolute, P50 vs metered</div></div>
+    </div>
+    <img src="/docs-static/validation/drc_end_to_end.png" alt="Open-data-only forecasts vs metered actuals for Lubero and Mutwanga" style="width:100%;margin-top:10px;border:1px solid var(--line);border-radius:4px">
+    <p class="src">Reference points, measured differently: survey-based estimates miss individual customers by 65% (CrossBoundary Innovation Lab); site-level machine learning trained on many metered sites reached 37% per site (Allee et al., Tanzania). Two sites is method validation, not proof.</p></div>
+  <div class="card"><h3>Ablation: census customer counts instead of footprints, without anchors and drivers</h3>
+    <div class="grid4">
+      <div class="kpi"><div class="l">Village site-years inside band</div><div class="v">${pct(s.day0_annual_coverage)}</div><div class="s">${s.n_site_years} site-years</div></div>
+      <div class="kpi"><div class="l">Months inside band</div><div class="v">${pct(s.day0_coverage)}</div><div class="s">village sites</div></div>
+      <div class="kpi"><div class="l">Annual error</div><div class="v">${pct(s.day0_annual_abs_error)}</div><div class="s">years 1–3</div></div>
+      <div class="kpi"><div class="l">Flat desk estimate</div><div class="v">${pct(s.baseline_flat_annual_abs_error)}</div><div class="s">census × benchmark kWh, no range</div></div>
+    </div>
+    <p class="lede" style="margin-top:10px">Left: day 0, no site data. Middle and right: after the operator shares 6 or 12 metered months (Demand Bureau update).</p>
     <img src="/docs-static/validation/drc_backtest.png" alt="Backtest charts for Goma, Lubero and Mutwanga" style="width:100%;border:1px solid var(--line);border-radius:4px"></div>
   <div class="card"><h3>Per site</h3><table class="t"><tr><th>Site</th><th class="n">Months</th><th class="n">Day-0 monthly error</th><th class="n">Day-0 monthly coverage</th><th>Day-0 annual energy error</th><th class="n">After 6 mo: model / persistence</th><th class="n">After 12 mo: model / persistence</th></tr>${siteRows}</table></div>
   <div class="card"><h3>What this does and does not show</h3>
     <ul>
-      <li><b>The range is calibrated:</b> before a site is built, Lodestar's P90–P10 band contained the metered annual energy in ${pct(s.day0_annual_coverage)} of village site-years. This is the property a lender needs from a P90.</li>
-      <li><b>The point forecast is not yet better than a simple benchmark.</b> A flat desk estimate had lower median error on these two village sites (${pct(s.baseline_flat_annual_abs_error)} vs ${pct(s.day0_annual_abs_error)}), but it gives no range and missed Goma by far more. We report it rather than hide it. Published references: survey-based per-customer error of 65% (CrossBoundary Innovation Lab) and per-site ML error of 37% (Allee et al., Tanzania), measured differently.</li>
+      <li><b>The range is calibrated:</b> before a site is built, Lodestar's P90–P10 band contained the metered annual energy in ${pct(E.annual_coverage)} of village site-years using open data alone. This is the property a lender needs from a P90.</li>
+      <li><b>The point forecast is close to, not clearly better than, a simple benchmark.</b> A flat desk estimate that needs a census (which a developer rarely has) had ${pct(s.baseline_flat_annual_abs_error)} annual error on these sites against ${pct(E.annual_abs_error)} for open-data Lodestar. It gives no range and missed urban Goma by ${pct(R.sites.Goma.baseline_flat_wape)}. We report it rather than hide it.</li>
       <li><b>Learning from meters is limited by shocks.</b> After 6 months of data, error on the village sites changes from ${pct(s.day0_wape)} to ${pct(s.after_6m_wape)} (persistence ${pct(s.persistence_after_6m_wape)}). After 12 months, regime shifts (Mutwanga's conflict collapse, Lubero's late uptake surge) make simple persistence the better predictor (${pct(s.persistence_after_12m_wape)} vs ${pct(s.after_12m_wape)}). The fix is more sites, which is what the Demand Bureau is for.</li>
       <li><b>Three sites is method validation, not proof.</b> Every forecast Lodestar issues is pre-registered in the <a href="#ledger" onclick="showTab('ledger')">forecast ledger</a> and scored when meters report.</li>
     </ul>

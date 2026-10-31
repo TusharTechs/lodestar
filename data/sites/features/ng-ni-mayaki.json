@@ -1,0 +1,62 @@
+{
+ "site_id": "ng-ni-mayaki",
+ "name": "Mayaki",
+ "country": "NG",
+ "admin1": "Niger",
+ "lat": 8.85,
+ "lon": 6.7,
+ "radius_m": 1500,
+ "buildings": {
+  "count": 2894,
+  "total_area_m2": 91592.2,
+  "median_area_m2": 22.3,
+  "n_small": 1754,
+  "n_residential": 1078,
+  "n_large": 62,
+  "density_per_km2": 409.4,
+  "source": "VIDA Google-Microsoft-OSM Open Buildings (source.coop), areas computed in local UTM"
+ },
+ "pois": {
+  "school": 0,
+  "health": 0,
+  "market": 0,
+  "worship": 0,
+  "shop": 0,
+  "mill": 0,
+  "telecom": 0,
+  "fuel": 0,
+  "bank": 0,
+  "water_pump": 0,
+  "other_commercial": 0
+ },
+ "grid": {
+  "dist_km": 9.141,
+  "electrified_target_frac": 0.0
+ },
+ "road": {
+  "dist_major_km": 0.024
+ },
+ "population": {
+  "worldpop": null
+ },
+ "solar": {
+  "ghi_annual": 5.177,
+  "ghi_monthly": [
+   5.27,
+   5.283,
+   5.587,
+   5.586,
+   5.412,
+   5.053,
+   4.609,
+   4.336,
+   4.738,
+   5.247,
+   5.631,
+   5.397
+  ],
+  "units": "kWh/m2/day"
+ },
+ "warnings": [],
+ "fetched_at": "2026-10-31T09:46:37+00:00"
+}

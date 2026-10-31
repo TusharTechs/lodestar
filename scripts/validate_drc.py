@@ -96,7 +96,7 @@ def main():
         "day0_inputs": "Potential customers (census) + AMDA 2024 consumption benchmarks (West & Central Africa) + ramp shapes fitted on the other metered sites.",
         "percentiles": "P90 = exceeded with 90% probability (conservative); P10 = optimistic.",
         "metrics": "WAPE = sum|P50 - actual| / sum actual over scored months; coverage = share of months with actual inside P90-P10 (target ~0.8); cum36 = error of P50 on cumulative energy over the next 36 months.",
-    }, "sites": {}, "notes": NOTES}
+    }, "sites": {}, "notes": NOTES, "summary": {}}
     paths = {}
     for name, panel in panels.items():
         train = [fits[o] for o in panels if o != name]
@@ -135,6 +135,36 @@ def main():
             paths[name][f"after_{k}"] = {kk: v.tolist() for kk, v in bk.items()}
         out["sites"][name] = site
 
+    # V1b: end-to-end from open data only (footprints + OpenStreetMap), no census, no own meters.
+    # Footprint->customer ratios and growth shapes come from the OTHER sites only.
+    from lodestar import village as V
+    feats = {n: json.loads((ROOT / "data" / "sites" / "features" / f"cd-nk-{n.lower()}.json").read_text())
+             for n in ("Lubero", "Mutwanga")}
+    out["end_to_end"] = {}
+    for name in feats:
+        other = [o for o in feats if o != name][0]
+        po, fo = panels[other], feats[other]["buildings"]
+        spec = V.build_spec(feats[name], fits=[fits[o] for o in panels if o != name], horizon=int(panels[name].months.max()),
+                            hh_ratio=po.pot_hh / (fo["n_residential"] + fo["n_small"]), sme_ratio=po.pot_sme / fo["n_large"])
+        de = simulate(spec, n=N_DRAWS, seed=2)
+        panel = panels[name]
+        t, actual = panel.months, panel.total_kwh
+        out["end_to_end"][name] = {
+            **metrics(t, actual, bands_at(de, t), 0, at(de, t)),
+            "potential_from_footprints": {s: round(spec.potentials[s].median) for s in spec.potentials},
+            "potential_census": {"household": panel.pot_hh, "sme": panel.pot_sme},
+            "ratios_from": other,
+        }
+        paths[name]["end_to_end"] = {k: v.tolist() for k, v in bands_at(de, t).items()}
+    e2e = out["end_to_end"]
+    out["summary"]["end_to_end_village"] = {
+        "annual_abs_error": float(np.mean([abs(y["error"]) for s in e2e.values() for y in s["years"]])),
+        "annual_coverage": float(np.mean([y["inside_band"] for s in e2e.values() for y in s["years"]])),
+        "monthly_coverage": float(np.mean([s["coverage_p90_p10"] for s in e2e.values()])),
+        "wape": float(np.mean([s["wape"] for s in e2e.values()])),
+        "n_site_years": int(sum(len(s["years"]) for s in e2e.values())),
+    }
+
     clients = load_clients()
     spread = {}
     for name in panels:
@@ -151,7 +181,6 @@ def main():
 
     village = [s for s in panels if s != "Goma"]
     mean = lambda f, sites: float(np.mean([f(out["sites"][s]) for s in sites]))
-    out["summary"] = {}
     for label, sites in (("village_sites", village), ("all_sites", list(panels))):
         out["summary"][label] = {
             "day0_wape": mean(lambda s: s["day0"]["wape"], sites),
@@ -168,7 +197,10 @@ def main():
     OUT_JSON.parent.mkdir(parents=True, exist_ok=True)
     OUT_JSON.write_text(json.dumps({"results": out, "paths": paths}, indent=1))
     plot(paths)
+    plot_e2e(paths, out["end_to_end"])
     print(json.dumps(out["summary"], indent=1))
+    for n, e in out["end_to_end"].items():
+        print("E2E", n, e["potential_from_footprints"], "census", e["potential_census"], [(y["year"], round(y["error"], 2), y["inside_band"]) for y in e["years"]])
     for n, s in out["sites"].items():
         print(f"{n:9s} day0 WAPE {s['day0']['wape']:.2f} cov {s['day0']['coverage_p90_p10']:.2f} cum36 {s['day0']['cum36_error']:+.2f} | flat {s['baseline_flat_wape']:.2f} | "
               + " ".join(f"m{k}: {s['learning'][str(k)]['wape']:.2f}/{s['learning'][str(k)]['coverage_p90_p10']:.2f} (pers {s['learning'][str(k)]['baseline_persistence_wape']:.2f})" for k in LEARN_MONTHS))
@@ -200,6 +232,27 @@ def plot(paths):
         ax.set_xlabel("Months since commissioning")
     fig.tight_layout()
     fig.savefig(FIG_DIR / "drc_backtest.png", dpi=150)
+
+
+def plot_e2e(paths, e2e):
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    fig, axes = plt.subplots(1, len(e2e), figsize=(11, 3.6))
+    for ax, (name, e) in zip(axes, e2e.items()):
+        p = paths[name]
+        t, b = np.array(p["months"]), p["end_to_end"]
+        ax.fill_between(t, np.array(b["p90"]) / 1e3, np.array(b["p10"]) / 1e3, color="#f4a261", alpha=0.35, label="P90–P10 band")
+        ax.plot(t, np.array(b["p50"]) / 1e3, color="#e76f51", lw=2, label="P50 forecast (open data only)")
+        ax.plot(t, np.array(p["actual"]) / 1e3, color="#264653", lw=1.8, label="Metered actual (unseen)")
+        yrs = ", ".join(f"Y{y['year']} {100 * y['error']:+.0f}%" for y in e["years"])
+        ax.set_title(f"{name}: annual P50 error {yrs}", fontsize=9)
+        ax.set_xlabel("Months since commissioning"); ax.set_ylabel("MWh / month"); ax.grid(alpha=0.25)
+    axes[0].legend(fontsize=7, loc="upper left")
+    fig.suptitle("Held-out DRC mini-grids forecast from building footprints + OpenStreetMap only (no census, no site meters)", fontsize=10)
+    fig.tight_layout()
+    fig.savefig(FIG_DIR / "drc_end_to_end.png", dpi=150)
 
 
 if __name__ == "__main__":

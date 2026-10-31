@@ -7,6 +7,7 @@ from __future__ import annotations
 import csv
 import io
 import json
+import os
 import sys
 import threading
 import time
@@ -40,6 +41,7 @@ env.filters["num"] = lambda v, nd=0: "n/a" if v is None else f"{v:,.{nd}f}"
 env.filters["pct"] = lambda v, nd=0: "n/a" if v is None else f"{100 * v:.{nd}f}%"
 env.filters["usd"] = lambda v: "n/a" if v is None else (f"${v / 1e6:,.2f}M" if abs(v) >= 1e6 else f"${v:,.0f}")
 JOBS: dict[str, dict] = {}
+DRAWS = int(os.environ.get("LODESTAR_DRAWS", "20000"))  # lower on small hosts
 
 
 def features(site_id: str) -> dict:
@@ -65,7 +67,7 @@ def get_report(site_id: str, refresh: bool = False) -> dict:
     f = REPORTS / f"{site_id}.json"
     if f.exists() and not refresh:
         return json.loads(f.read_text())
-    rep = R.build(features(site_id))
+    rep = R.build(features(site_id), n=DRAWS)
     rep["actuals"] = actuals(site_id)
     rep["ledger"] = R.ledger_entry(rep)
     REPORTS.mkdir(parents=True, exist_ok=True)
@@ -105,7 +107,7 @@ def bureau_update(site_id: str, rows: list[dict]) -> dict:
     missing = [k for k in BUREAU_FIELDS if k not in rows[0]]
     if missing:
         raise HTTPException(400, f"missing columns: {missing}")
-    rep = R.build(features(site_id), observed=_observed_from_rows(rows), with_waterfall=False)
+    rep = R.build(features(site_id), observed=_observed_from_rows(rows), with_waterfall=False, n=DRAWS)
     rep["actuals"] = actuals(site_id)
     rep["prior_headline"] = get_report(site_id)["headline"]
     return rep

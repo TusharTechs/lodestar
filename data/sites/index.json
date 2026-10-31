@@ -48,6 +48,114 @@
   "has_mill": false
  },
  {
+  "site_id": "ke-kaj-eremit",
+  "name": "Eremit",
+  "country": "KE",
+  "admin1": "Kajiado",
+  "lat": -1.4468001,
+  "lon": 36.4776818,
+  "n_buildings": 192,
+  "dist_grid_km": 12.205,
+  "has_market": false,
+  "has_mill": false
+ },
+ {
+  "site_id": "ke-kit-mathuki-centre",
+  "name": "Mathuki Centre",
+  "country": "KE",
+  "admin1": "Kitui",
+  "lat": -1.0378966,
+  "lon": 38.2411879,
+  "n_buildings": 996,
+  "dist_grid_km": 10.002,
+  "has_market": false,
+  "has_mill": false
+ },
+ {
+  "site_id": "ke-kit-ngungi",
+  "name": "Ngungi",
+  "country": "KE",
+  "admin1": "Kitui",
+  "lat": -1.5012331,
+  "lon": 38.2243366,
+  "n_buildings": 759,
+  "dist_grid_km": 6.11,
+  "has_market": true,
+  "has_mill": false
+ },
+ {
+  "site_id": "ke-nar-olposimoru",
+  "name": "Olposimoru",
+  "country": "KE",
+  "admin1": "Narok",
+  "lat": -1.8069093,
+  "lon": 35.4954397,
+  "n_buildings": 709,
+  "dist_grid_km": 13.852,
+  "has_market": false,
+  "has_mill": false
+ },
+ {
+  "site_id": "ke-nar-torokiat",
+  "name": "Torokiat",
+  "country": "KE",
+  "admin1": "Narok",
+  "lat": -0.8348825,
+  "lon": 35.6952477,
+  "n_buildings": 1828,
+  "dist_grid_km": 12.697,
+  "has_market": false,
+  "has_mill": false
+ },
+ {
+  "site_id": "ke-tur-kakwanyang",
+  "name": "Kakwanyang",
+  "country": "KE",
+  "admin1": "Turkana",
+  "lat": 3.1559329,
+  "lon": 35.6753739,
+  "n_buildings": 174,
+  "dist_grid_km": 7.686,
+  "has_market": false,
+  "has_mill": false
+ },
+ {
+  "site_id": "ke-tur-kalemunyang",
+  "name": "Kalemunyang",
+  "country": "KE",
+  "admin1": "Turkana",
+  "lat": 2.7332132,
+  "lon": 35.3685818,
+  "n_buildings": 1115,
+  "dist_grid_km": 20.599,
+  "has_market": false,
+  "has_mill": false
+ },
+ {
+  "site_id": "ke-wpk-kalapata",
+  "name": "Kalapata",
+  "country": "KE",
+  "admin1": "West Pokot",
+  "lat": 2.3312205,
+  "lon": 34.9956707,
+  "n_buildings": 552,
+  "dist_grid_km": 33.168,
+  "has_market": false,
+  "has_mill": false
+ },
+ {
+  "site_id": "ke-wpk-rorok",
+  "name": "Rorok",
+  "country": "KE",
+  "admin1": "West Pokot",
+  "lat": 1.3695244,
+  "lon": 35.690862,
+  "n_buildings": 328,
+  "dist_grid_km": 6.191,
+  "has_market": false,
+  "has_mill": false
+ },
+ {
   "site_id": "ng-kd-kabai",
   "name": "Kabai",
   "country": "NG",
@@ -60,6 +168,30 @@
   "has_mill": false
  },
  {
+  "site_id": "ng-kg-denbor",
+  "name": "Denbor",
+  "country": "NG",
+  "admin1": "Kogi",
+  "lat": 8.5309671,
+  "lon": 6.4210404,
+  "n_buildings": 156,
+  "dist_grid_km": 9.256,
+  "has_market": false,
+  "has_mill": false
+ },
+ {
+  "site_id": "ng-kg-guguriji",
+  "name": "Guguriji",
+  "country": "NG",
+  "admin1": "Kogi",
+  "lat": 8.3896628,
+  "lon": 6.1565521,
+  "n_buildings": 185,
+  "dist_grid_km": 11.942,
+  "has_market": false,
+  "has_mill": false
+ },
+ {
   "site_id": "ng-kn-kofar-gabas",
   "name": "Kofar Gabas",
   "country": "NG",
@@ -68,6 +200,42 @@
   "lon": 8.77079,
   "n_buildings": 1143,
   "dist_grid_km": 12.145,
+  "has_market": false,
+  "has_mill": false
+ },
+ {
+  "site_id": "ng-kn-santar",
+  "name": "Santar",
+  "country": "NG",
+  "admin1": "Kano",
+  "lat": 12.0784,
+  "lon": 8.05399,
+  "n_buildings": 1759,
+  "dist_grid_km": 7.426,
+  "has_market": false,
+  "has_mill": false
+ },
+ {
+  "site_id": "ng-ni-mayaki",
+  "name": "Mayaki",
+  "country": "NG",
+  "admin1": "Niger",
+  "lat": 8.85,
+  "lon": 6.7,
+  "n_buildings": 2894,
+  "dist_grid_km": 9.141,
+  "has_market": false,
+  "has_mill": false
+ },
+ {
+  "site_id": "ng-ni-shanla",
+  "name": "Shanla",
+  "country": "NG",
+  "admin1": "Niger",
+  "lat": 8.916667,
+  "lon": 6.35,
+  "n_buildings": 389,
+  "dist_grid_km": 6.749,
   "has_market": false,
   "has_mill": false
  }

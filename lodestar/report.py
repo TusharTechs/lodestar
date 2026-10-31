@@ -77,6 +77,10 @@ def build(feat: dict, observed: dict | None = None, n: int = 20000, fin_override
         "method": {"draws": n, "model_version": "lodestar-0.3",
                    "percentiles": "P90 = exceeded with 90% probability (conservative), P50 median, P10 optimistic"},
     }
+    n_conn = sum(conn_y3.values())
+    avg = {"west_central": 592, "east_south": 209}[region]
+    if n_conn < 100:
+        rep["warnings"].append(f"Small for a mini-grid: about {n_conn:.0f} connections by year 3 at P50 (AMDA 2024 average site: {avg} connections in {village.REGION_LABEL[region]}). Solar home systems may serve this settlement more cheaply.")
     g = (feat.get("grid") or {}).get("dist_km")
     if g is not None and g < 5:
         rep["warnings"].append(f"Within {g:.1f} km of a mapped grid line (GridFinder): check grid-extension plans before building a mini-grid.")

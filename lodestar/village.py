@@ -24,9 +24,11 @@ REGION_LABEL = {"west_central": "West & Central Africa", "east_south": "East & S
 
 # Footprints -> potential customers. Calibrated on the two DRC village sites, where the
 # source census counts households and firms in the service area:
-#   households / residential buildings (30-120 m2): Mutwanga 5513/7060 = 0.78, Lubero 4160/7796 = 0.53
-#   firms / large buildings (>120 m2):              Mutwanga 317/278  = 1.14, Lubero 536/520   = 1.03
-HH_PER_RES_BUILDING = float(np.sqrt(0.78 * 0.53))     # geometric mean 0.64
+#   households / dwelling-size buildings (<=120 m2): Mutwanga 5513/11122 = 0.50, Lubero 4160/12221 = 0.34
+#   firms / large buildings (>120 m2):              Mutwanga 317/278   = 1.14, Lubero 536/520    = 1.03
+# All buildings up to 120 m2 count as possible dwellings: in rural Kenya and northern Nigeria most
+# dwellings are huts under 30 m2, and several structures typically belong to one household compound.
+HH_PER_RES_BUILDING = float(np.sqrt(0.50 * 0.34))     # geometric mean 0.41
 SME_PER_LARGE_BUILDING = float(np.sqrt(1.14 * 1.03))  # 1.08
 POT_SIGMA = 0.30                                      # covers the 0.53-0.78 spread and footprint errors
 
@@ -78,14 +80,16 @@ def anchors_for(feat: dict) -> list[Anchor]:
     return out
 
 
-def build_spec(feat: dict, use: set[str] | None = None, horizon: int = 60) -> SiteSpec:
-    """Spec for a site. `use` limits which drivers/anchors are switched on (for the waterfall)."""
+def build_spec(feat: dict, use: set[str] | None = None, horizon: int = 60, fits: list | None = None,
+               hh_ratio: float = HH_PER_RES_BUILDING, sme_ratio: float = SME_PER_LARGE_BUILDING) -> SiteSpec:
+    """Spec for a site. `use` limits which drivers/anchors are switched on (for the waterfall).
+    `fits`, `hh_ratio`, `sme_ratio` can be overridden for leave-one-site-out validation."""
     region = REGION_OF.get(feat.get("country"), "west_central")
-    fits = drc_fits()
+    fits = fits or drc_fits()
     priors = {s: benchmark_prior(fits, s, region) for s in ("household", "sme")}
     b = feat["buildings"]
-    pot = {"household": max(b["n_residential"] * HH_PER_RES_BUILDING, 5.0),
-           "sme": max(b["n_large"] * SME_PER_LARGE_BUILDING, 1.0)}
+    pot = {"household": max((b["n_residential"] + b["n_small"]) * hh_ratio, 5.0),
+           "sme": max(b["n_large"] * sme_ratio, 1.0)}
     for d in drivers_for(feat):
         if use is not None and d["key"] not in use:
             continue

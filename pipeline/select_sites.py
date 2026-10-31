@@ -7,6 +7,9 @@ sys.path.insert(0, str(pathlib.Path(__file__).parent))
 import features as F
 
 SITES = F.SITES
+import os
+MIN_N, MAX_N = int(os.environ.get("MIN_N", 150)), int(os.environ.get("MAX_N", 3000))
+NEED_PROD = os.environ.get("NEED_PROD") == "1"  # require a market, mill or >=3 shops in OSM
 REGIONS = {
     "NG": [("Kaduna", "kd"), ("Niger", "ni"), ("Kano", "kn"), ("Kogi", "kg"), ("Plateau", "pl")],
     "KE": [("Turkana", "tur"), ("Marsabit", "mar"), ("Kitui", "kit"), ("Kajiado", "kaj"), ("Narok", "nar"),
@@ -39,7 +42,7 @@ def pick_country(cc, per_country, max_cand, seed=1, only_state=None, compute=Fal
     found = []
     states = [s for s in REGIONS[cc] if only_state in (None, s[1])]
     for state, code in states:
-        cache = F.CACHE / f"candidates_{cc}_{code}.json"
+        cache = F.CACHE / f"candidates_{cc}_{code}{'_prod' if NEED_PROD else ''}.json"
         if cache.exists():
             found += json.loads(cache.read_text()); continue
         try:
@@ -66,12 +69,13 @@ def pick_country(cc, per_country, max_cand, seed=1, only_state=None, compute=Fal
             except Exception as e:
                 print(f"  bld fail {name}: {e}"); continue
             print(f"[{cc}/{state}] {name} d={d:.1f} tf={tf:.3f} n={n}", flush=True)
-            if not (150 <= n <= 3000): continue
+            if not (MIN_N <= n <= MAX_N): continue
             try:
                 pois = {k: v for k, v in zip(F.POI_KEYS, [0] * 11)}
                 for p in F.get_pois(lat, lon, 1500): pois[p["poi_type"]] += 1
             except Exception as e:
                 pois = None
+            if NEED_PROD and not productive(pois): continue
             good.append(dict(state=state, code=code, name=name, lat=lat, lon=lon, n=n, d=d, tf=tf,
                              productive=productive(pois), pois=pois))
             if compute:

@@ -1,0 +1,62 @@
+{
+ "site_id": "ke-wpk-kalapata",
+ "name": "Kalapata",
+ "country": "KE",
+ "admin1": "West Pokot",
+ "lat": 2.3312205,
+ "lon": 34.9956707,
+ "radius_m": 1500,
+ "buildings": {
+  "count": 552,
+  "total_area_m2": 8596.9,
+  "median_area_m2": 10.2,
+  "n_small": 517,
+  "n_residential": 31,
+  "n_large": 4,
+  "density_per_km2": 78.1,
+  "source": "VIDA Google-Microsoft-OSM Open Buildings (source.coop), areas computed in local UTM"
+ },
+ "pois": {
+  "school": 0,
+  "health": 0,
+  "market": 0,
+  "worship": 0,
+  "shop": 0,
+  "mill": 0,
+  "telecom": 0,
+  "fuel": 0,
+  "bank": 0,
+  "water_pump": 0,
+  "other_commercial": 0
+ },
+ "grid": {
+  "dist_km": 33.168,
+  "electrified_target_frac": 0.0
+ },
+ "road": {
+  "dist_major_km": 1.759
+ },
+ "population": {
+  "worldpop": null
+ },
+ "solar": {
+  "ghi_annual": 6.017,
+  "ghi_monthly": [
+   6.345,
+   6.586,
+   6.343,
+   5.873,
+   5.845,
+   5.527,
+   5.418,
+   5.865,
+   6.401,
+   6.085,
+   5.887,
+   6.067
+  ],
+  "units": "kWh/m2/day"
+ },
+ "warnings": [],
+ "fetched_at": "2026-10-31T09:45:27+00:00"
+}
