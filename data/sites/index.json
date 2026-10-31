@@ -1,0 +1,38 @@
+[
+ {
+  "site_id": "cd-nk-goma",
+  "name": "Goma",
+  "country": "CD",
+  "admin1": "North Kivu",
+  "lat": -1.6665685,
+  "lon": 29.225652,
+  "n_buildings": 73575,
+  "dist_grid_km": 0.61,
+  "has_market": true,
+  "has_mill": true
+ },
+ {
+  "site_id": "cd-nk-lubero",
+  "name": "Lubero",
+  "country": "CD",
+  "admin1": "North Kivu",
+  "lat": -0.1586686,
+  "lon": 29.2385988,
+  "n_buildings": 12741,
+  "dist_grid_km": 0.444,
+  "has_market": true,
+  "has_mill": false
+ },
+ {
+  "site_id": "cd-nk-mutwanga",
+  "name": "Mutwanga",
+  "country": "CD",
+  "admin1": "North Kivu",
+  "lat": 0.3411714,
+  "lon": 29.7477556,
+  "n_buildings": 11400,
+  "dist_grid_km": 0.637,
+  "has_market": true,
+  "has_mill": true
+ }
+]

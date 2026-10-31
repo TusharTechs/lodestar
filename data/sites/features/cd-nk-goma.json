@@ -1,0 +1,66 @@
+{
+ "site_id": "cd-nk-goma",
+ "name": "Goma",
+ "country": "CD",
+ "admin1": "North Kivu",
+ "lat": -1.6665685,
+ "lon": 29.225652,
+ "radius_m": 2000,
+ "buildings": {
+  "count": 73575,
+  "total_area_m2": 4363942.7,
+  "median_area_m2": 43.7,
+  "n_small": 25896,
+  "n_residential": 41093,
+  "n_large": 6586,
+  "density_per_km2": 5854.9,
+  "source": "VIDA Google-Microsoft-OSM Open Buildings (source.coop), areas computed in local UTM"
+ },
+ "pois": {
+  "school": 61,
+  "health": 105,
+  "market": 6,
+  "worship": 44,
+  "shop": 10,
+  "mill": 1,
+  "telecom": 6,
+  "fuel": 1,
+  "bank": 1,
+  "water_pump": 22,
+  "other_commercial": 40
+ },
+ "grid": {
+  "dist_km": 0.61,
+  "electrified_target_frac": 0.5424
+ },
+ "road": {
+  "dist_major_km": 0.313
+ },
+ "population": {
+  "worldpop": null
+ },
+ "solar": {
+  "ghi_annual": 4.805,
+  "ghi_monthly": [
+   4.822,
+   5.034,
+   4.916,
+   4.718,
+   4.626,
+   4.67,
+   4.868,
+   4.845,
+   5.029,
+   4.851,
+   4.64,
+   4.66
+  ],
+  "units": "kWh/m2/day"
+ },
+ "warnings": [
+  "geojson capped at 6000 of 73575 buildings (random sample); stats use all",
+  "centre moved to OSM place node (-1.6666,29.2257); prior approx (-1.68,29.23)",
+  "urban; service area not delimited"
+ ],
+ "fetched_at": "2026-10-31T09:19:19+00:00"
+}

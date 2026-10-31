@@ -1,0 +1,65 @@
+{
+ "site_id": "cd-nk-mutwanga",
+ "name": "Mutwanga",
+ "country": "CD",
+ "admin1": "North Kivu",
+ "lat": 0.3411714,
+ "lon": 29.7477556,
+ "radius_m": 2000,
+ "buildings": {
+  "count": 11400,
+  "total_area_m2": 506527.1,
+  "median_area_m2": 40.5,
+  "n_small": 4062,
+  "n_residential": 7060,
+  "n_large": 278,
+  "density_per_km2": 907.2,
+  "source": "VIDA Google-Microsoft-OSM Open Buildings (source.coop), areas computed in local UTM"
+ },
+ "pois": {
+  "school": 11,
+  "health": 1,
+  "market": 1,
+  "worship": 4,
+  "shop": 0,
+  "mill": 1,
+  "telecom": 0,
+  "fuel": 0,
+  "bank": 0,
+  "water_pump": 0,
+  "other_commercial": 5
+ },
+ "grid": {
+  "dist_km": 0.637,
+  "electrified_target_frac": 0.1724
+ },
+ "road": {
+  "dist_major_km": 0.061
+ },
+ "population": {
+  "worldpop": null
+ },
+ "solar": {
+  "ghi_annual": 4.967,
+  "ghi_monthly": [
+   5.285,
+   5.372,
+   5.167,
+   5.165,
+   5.068,
+   4.608,
+   4.529,
+   4.588,
+   5.08,
+   5.004,
+   4.831,
+   4.939
+  ],
+  "units": "kWh/m2/day"
+ },
+ "warnings": [
+  "geojson capped at 6000 of 11400 buildings (random sample); stats use all",
+  "centre moved to OSM place node (0.3412,29.7478); prior approx (0.33,29.75)"
+ ],
+ "fetched_at": "2026-10-31T09:10:46+00:00"
+}

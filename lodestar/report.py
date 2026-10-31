@@ -1,0 +1,102 @@
+"""Assemble the full site report (JSON) consumed by the API, the web app and the lender memo."""
+from __future__ import annotations
+
+import datetime as dt
+import hashlib
+import json
+from pathlib import Path
+
+import numpy as np
+
+from . import finance, village
+from .forecast import condition, exceedance
+from .priors import OBS_SIGMA
+
+ROOT = Path(__file__).resolve().parents[1]
+LEDGER = ROOT / "data" / "ledger" / "forecasts.jsonl"
+
+
+def _r(x, nd=1):
+    return None if x is None else round(float(x), nd)
+
+
+def fan(draws) -> dict:
+    t = draws.months
+    tot = draws.total
+    pc = {f"p{k}": np.percentile(tot, 100 - k, axis=0) for k in (90, 75, 50, 25, 10)}
+    segs = {}
+    for s in draws.conn:
+        segs[s] = {"connections_p50": np.median(draws.conn[s], 0).round(1).tolist(),
+                   "kwh_per_conn_p50": np.median(draws.q[s], 0).round(2).tolist(),
+                   "energy_p50": np.median(draws.energy[s], 0).round(1).tolist()}
+    if "anchors" in draws.energy:
+        segs["anchors"] = {"energy_p50": np.median(draws.energy["anchors"], 0).round(1).tolist()}
+    return {"months": t.astype(int).tolist(), **{k: v.round(1).tolist() for k, v in pc.items()}, "segments": segs}
+
+
+def confidence(p90, p10):
+    ratio = p10 / max(p90, 1e-9)
+    return ("high" if ratio < 2.0 else "medium" if ratio < 4.0 else "low"), ratio
+
+
+def build(feat: dict, observed: dict | None = None, n: int = 20000, fin_overrides: dict | None = None,
+          with_waterfall: bool = True) -> dict:
+    region = village.region_of(feat)
+    d = village.forecast(feat, n=n)
+    update = None
+    if observed:
+        months = np.asarray(observed.pop("months"), float)
+        d, diag = condition(d, observed, months, sigma=OBS_SIGMA)
+        update = {"months_used": int(len(months)), "diagnostics": diag}
+    y3 = village.year_energy(d, 3) / 12
+    p = {"p90": float(np.percentile(y3, 10)), "p50": float(np.percentile(y3, 50)), "p10": float(np.percentile(y3, 90))}
+    conf, ratio = confidence(p["p90"], p["p10"])
+    yearly = []
+    for y in range(1, 6):
+        e = village.year_energy(d, y) / 12
+        yearly.append({"year": y, **{k: float(np.percentile(e, q)) for k, q in (("p90", 10), ("p50", 50), ("p10", 90))}})
+    seg_y3 = {}
+    m = (d.months > 24) & (d.months <= 36)
+    for s, arr in d.energy.items():
+        seg_y3[s] = float(np.median(arr[:, m].mean(1)))
+    conn_y3 = {s: float(np.median(c[:, 36])) for s, c in d.conn.items()}
+    profile = village.hourly_profile(d, feat)
+    fin = finance.stress_test(d, feat, region, profile, fin_overrides) if feat.get("solar", {}).get("ghi_monthly") else None
+    rep = {
+        "site": {k: feat.get(k) for k in ("site_id", "name", "country", "admin1", "lat", "lon", "radius_m")},
+        "features": {k: feat.get(k) for k in ("buildings", "pois", "grid", "road", "solar")},
+        "warnings": list(feat.get("warnings") or []),
+        "region": region, "region_label": village.REGION_LABEL[region], "benchmark_note": village.benchmark_note(feat),
+        "headline": {"year": 3, "unit": "kWh/month", **p, "confidence": conf, "p10_over_p90": ratio},
+        "yearly": yearly, "fan": fan(d), "segments_y3_kwh_month": seg_y3, "connections_y3": conn_y3,
+        "potential_customers": {s: village.build_spec(feat).potentials[s].median for s in ("household", "sme")},
+        "anchors": [{"kind": a.kind, "kwh_month": a.kwh_month} for a in village.anchors_for(feat)],
+        "drivers": village.drivers_for(feat),
+        "waterfall": village.waterfall(feat) if with_waterfall else None,
+        "load_profile": profile, "finance": fin, "update": update,
+        "method": {"draws": n, "model_version": "lodestar-0.3",
+                   "percentiles": "P90 = exceeded with 90% probability (conservative), P50 median, P10 optimistic"},
+    }
+    g = (feat.get("grid") or {}).get("dist_km")
+    if g is not None and g < 5:
+        rep["warnings"].append(f"Within {g:.1f} km of a mapped grid line (GridFinder): check grid-extension plans before building a mini-grid.")
+    return json.loads(json.dumps(rep, default=lambda o: float(o) if isinstance(o, np.floating) else int(o)))
+
+
+def ledger_entry(rep: dict, write: bool = True) -> dict:
+    """Pre-register a forecast: hash of the site and its forecast numbers, timestamped, append-only."""
+    core = {"site": rep["site"], "headline": rep["headline"], "yearly": rep["yearly"],
+            "model_version": rep["method"]["model_version"]}
+    blob = json.dumps(core, sort_keys=True, separators=(",", ":")).encode()
+    entry = {"forecast_id": hashlib.sha256(blob).hexdigest()[:16],
+             "issued_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
+             "site_id": rep["site"]["site_id"], "name": rep["site"]["name"],
+             "y3_p90": _r(rep["headline"]["p90"]), "y3_p50": _r(rep["headline"]["p50"]), "y3_p10": _r(rep["headline"]["p10"]),
+             "status": "awaiting metered data"}
+    if write:
+        LEDGER.parent.mkdir(parents=True, exist_ok=True)
+        existing = LEDGER.read_text().splitlines() if LEDGER.exists() else []
+        if not any(json.loads(l)["forecast_id"] == entry["forecast_id"] for l in existing):
+            with LEDGER.open("a") as f:
+                f.write(json.dumps(entry) + "\n")
+    return entry

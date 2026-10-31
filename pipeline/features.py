@@ -17,7 +17,8 @@ OVP_CACHE = CACHE / "overpass"
 GRID_DIR = ROOT / "data" / "raw" / "large" / "gridfinder"
 SITES = ROOT / "data" / "sites"
 UA = {"User-Agent": "Lodestar-hackathon/0.1 (geospatial feature pipeline)"}
-OVERPASS = ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter"]
+OVERPASS = ["https://maps.mail.ru/osm/tools/overpass/api/interpreter", "https://overpass-api.de/api/interpreter",
+            "https://overpass.kumi.systems/api/interpreter"]
 MAX_GEO_BUILDINGS = 6000
 ISO3_TO_2 = {"NGA": "NG", "KEN": "KE", "COD": "CD"}
 
@@ -121,7 +122,7 @@ def overpass(query, retries=4):
     for i in range(retries):
         for url in OVERPASS:
             try:
-                r = requests.post(url, data={"data": query}, headers=UA, timeout=120)
+                r = requests.post(url, data={"data": query}, headers=UA, timeout=150)
                 if r.status_code == 200:
                     j = r.json()
                     f.write_text(json.dumps(j))

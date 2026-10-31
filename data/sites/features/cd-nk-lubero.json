@@ -1,0 +1,64 @@
+{
+ "site_id": "cd-nk-lubero",
+ "name": "Lubero",
+ "country": "CD",
+ "admin1": "North Kivu",
+ "lat": -0.1586686,
+ "lon": 29.2385988,
+ "radius_m": 2000,
+ "buildings": {
+  "count": 12741,
+  "total_area_m2": 601374.8,
+  "median_area_m2": 39.1,
+  "n_small": 4425,
+  "n_residential": 7796,
+  "n_large": 520,
+  "density_per_km2": 1013.9,
+  "source": "VIDA Google-Microsoft-OSM Open Buildings (source.coop), areas computed in local UTM"
+ },
+ "pois": {
+  "school": 14,
+  "health": 10,
+  "market": 1,
+  "worship": 14,
+  "shop": 0,
+  "mill": 0,
+  "telecom": 0,
+  "fuel": 1,
+  "bank": 2,
+  "water_pump": 5,
+  "other_commercial": 16
+ },
+ "grid": {
+  "dist_km": 0.444,
+  "electrified_target_frac": 0.0333
+ },
+ "road": {
+  "dist_major_km": 0.075
+ },
+ "population": {
+  "worldpop": null
+ },
+ "solar": {
+  "ghi_annual": 5.05,
+  "ghi_monthly": [
+   5.145,
+   5.332,
+   5.141,
+   5.069,
+   5.073,
+   4.859,
+   4.885,
+   4.877,
+   5.255,
+   5.117,
+   4.94,
+   4.927
+  ],
+  "units": "kWh/m2/day"
+ },
+ "warnings": [
+  "geojson capped at 6000 of 12741 buildings (random sample); stats use all"
+ ],
+ "fetched_at": "2026-10-31T09:16:36+00:00"
+}
