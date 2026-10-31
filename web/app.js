@@ -20,6 +20,15 @@ function mk(id, cfg) { if (charts[id]) charts[id].destroy(); const el = document
 Chart.defaults.font.family = "Inter, system-ui, sans-serif"; Chart.defaults.font.size = 11; Chart.defaults.color = C.muted;
 Chart.defaults.plugins.legend.labels.boxWidth = 12; Chart.defaults.maintainAspectRatio = false; Chart.defaults.animation.duration = 500;
 
+/* ---------------- skeleton placeholders (shown while data loads) ---------------- */
+function skeleton(kind = "page") {
+  const tiles = n => `<div class="grid4">${Array.from({ length: n }, () => `<div class="kpi sk-card"><div class="sk" style="width:40%;height:10px"></div><div class="sk" style="width:65%;height:26px;margin-top:10px"></div><div class="sk" style="width:85%;height:10px;margin-top:10px"></div></div>`).join("")}</div>`;
+  const card = h => `<div class="card sk-card"><div class="sk" style="width:35%;height:18px"></div><div class="sk" style="width:80%;height:11px;margin-top:12px"></div><div class="sk" style="height:${h}px;margin-top:16px"></div></div>`;
+  if (kind === "report") return `<div class="skel" aria-busy="true" aria-label="Loading forecast"><div class="sk" style="width:30%;height:30px"></div><div class="sk" style="width:55%;height:12px;margin-top:10px"></div><div class="headline" style="margin-top:18px">${Array.from({ length: 4 }, () => `<div class="kpi sk-card"><div class="sk" style="width:45%;height:10px"></div><div class="sk" style="width:60%;height:28px;margin-top:10px"></div></div>`).join("")}</div>${card(150)}${card(240)}</div>`;
+  if (kind === "proof") return Array.from({ length: 4 }, () => `<div class="kpi sk-card"><div class="sk" style="width:50%;height:28px"></div><div class="sk" style="width:85%;height:11px;margin-top:10px"></div></div>`).join("");
+  return `<div class="skel" aria-busy="true" aria-label="Loading"><div class="sk" style="width:22%;height:11px"></div><div class="sk" style="width:58%;height:34px;margin-top:12px"></div><div class="sk" style="width:78%;height:12px;margin-top:14px"></div>${tiles(4)}${card(220)}${card(140)}</div>`;
+}
+
 /* ---------------- tabs ---------------- */
 document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => showTab(b.dataset.tab));
 function showTab(t) {
@@ -144,7 +153,7 @@ async function runPoint(ll) {
 async function openSite(id, rep) {
   current = id; showTab("explore");
   document.querySelectorAll("#sitelist .it").forEach(el => el.classList.toggle("on", el.dataset.id === id));
-  $("#report").innerHTML = `<div class="empty"><h2><span class="spinner"></span>Loading forecast…</h2></div>`;
+  $("#report").innerHTML = skeleton("report");
   try { rep = rep || await get(`/api/sites/${id}/report`); } catch (e) { $("#report").innerHTML = `<div class="flag">${esc(e.message)}</div>`; return; }
   currentReport = rep;
   showOnMap(rep);
@@ -158,7 +167,7 @@ async function renderLanding() {
     <div class="kick">Global Energy Hackathon 2026 · Brief 03 · Predict mini-grid demand before building</div>
     <h1>What P90 did for solar finance, Lodestar does for mini-grid demand.</h1>
     <p class="lede">Pick any village. You get a demand forecast with a bankable range, a five-year growth curve, the drivers in plain words, a system size and a lender stress test, built from open data and checked against real meters.</p>
-    <div class="proof" id="proof"><div class="kpi"><div class="l">Loading</div><div class="v">…</div></div></div>
+    <div class="proof" id="proof">${skeleton("proof")}</div>
     <div class="card live"><div class="livehead"><div><div class="kick" style="margin:0">Live example</div><h3>Mutwanga, DR Congo: forecast vs real meters</h3></div><button class="btn primary" onclick="openSite('cd-nk-mutwanga')">Open this forecast →</button></div>
       <div class="chart small"><canvas id="mini"></canvas></div>
       <p class="src">Forecast from building footprints and OpenStreetMap only; it never saw this site's meters. Orange band: P90–P10 range. Black line: what the meters recorded.</p></div>
@@ -338,6 +347,7 @@ async function runBureauDemo(r) {
 /* ---------------- validation ---------------- */
 async function renderValidation() {
   const el = $("#valpage"); if (el.dataset.done) return;
+  if (!el.innerHTML.trim()) el.innerHTML = skeleton();
   let v; try { v = await get("/api/validation"); } catch (e) { el.innerHTML = `<div class="flag">Validation results unavailable: ${esc(e.message)}</div>`; return; }
   const R = v.results, s = R.summary.village_sites, a = R.summary.all_sites, E = R.summary.end_to_end_village || {};
   const siteRows = Object.entries(R.sites).map(([n, x]) => {
@@ -421,6 +431,7 @@ tariff_usd_kwh, outage_hours        (optional)</pre>
 /* ---------------- impact ---------------- */
 async function renderImpact() {
   const el = $("#impactpage"); if (el.dataset.done) return;
+  if (!el.innerHTML.trim()) el.innerHTML = skeleton();
   const [v, ec, pf, ps] = await Promise.all([get("/api/validation"), get("/api/economics"), get("/api/portfolio"), get("/api/personas").catch(() => null)]);
   const R = v.results, D = R.decision_backtest || {}, S = (R.summary || {}).decision_backtest || {}, E = R.summary.end_to_end_village || {};
   const plan = { desk: "Desk estimate, single build", lodestar: "Lodestar: build at P50, expand on metered demand", hindsight: "Hindsight (perfect knowledge)" };
@@ -482,6 +493,7 @@ async function renderImpact() {
 /* ---------------- portfolio + SMS ---------------- */
 async function renderPortfolio() {
   const el = $("#portfoliopage"); if (el.dataset.done) return;
+  if (!el.innerHTML.trim()) el.innerHTML = skeleton();
   const pf = await get("/api/portfolio");
   const order = { rbf: 0, anchor: 1, grid: 2, shs: 3 };
   pf.sort((a, b) => order[a.category] - order[b.category] || b.y3_p50 - a.y3_p50);
@@ -526,6 +538,7 @@ async function renderPortfolio() {
 /* ---------------- ledger ---------------- */
 async function renderLedger() {
   const el = $("#ledgerpage");
+  if (!el.innerHTML.trim()) el.innerHTML = skeleton();
   const [L, M] = await Promise.all([get("/api/ledger"), get("/api/metrics")]);
   const A = M.accuracy, T = M.track_record;
   el.innerHTML = `<div class="kick">Track record · accuracy, ledger, data freshness</div><h1>Track record</h1>

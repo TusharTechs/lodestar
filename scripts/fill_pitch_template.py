@@ -52,7 +52,7 @@ FILL = {
   ("[Users, utility, government, investors: who pays what, and when]",
    "First: developers bidding into results-based financing, per report. Next: RBF programmes, $12k/yr screening. Later: lenders."),
   ("[Revenue, savings, or cost recovery that covers running costs without ongoing grants]",
-   "Open data, 0.76 CPU-s per forecast. Break-even ~200 reports/yr: 3% of 6,116 planned sites (AMDA). No grant to run."),
+   "Open data, under 1 CPU-s per forecast. Break-even ~200 reports/yr: 3% of 6,116 planned sites (AMDA). No grant to run."),
   ("[Local maintenance, parts, and who is responsible after launch]",
    "Two analysts in Nairobi or Lagos; Python on a laptop, no API keys; quarterly re-fit on Bureau meter data."),
   ("[Diesel, emissions, or waste avoided per year]",

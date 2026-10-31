@@ -61,7 +61,7 @@ Reproduce with `python scripts/validate_drc.py`. It writes `data/derived/validat
   - 4 need an anchor load;
   - 12 are solar-home-system territory (under 100 connections, or below World Bank MTF Tier 2 at 6 kWh/month);
   - 3 are near the grid.
-- **Lodestar pays for itself.** A forecast takes 0.76 CPU-seconds (about $0.00001) and 6 KB. Break-even is about 200 paid reports a year: 3.3% of the 6,116 sites AMDA members plan (team and hosting costs are assumptions). A $300 report is 0.05% of an average mini-grid's cost.
+- **Lodestar pays for itself.** A forecast takes under 1 CPU-second (about $0.00001) and 6 KB. Break-even is about 200 paid reports a year: 3.3% of the 6,116 sites AMDA members plan (team and hosting costs are assumptions). A $300 report is 0.05% of an average mini-grid's cost.
 
 ## Business model canvas
 
@@ -75,7 +75,7 @@ Reproduce with `python scripts/validate_drc.py`. It writes `data/derived/validat
 | **Key resources** | Open-data pipeline and calibrated model; metered validation; forecast ledger; Demand Bureau data |
 | **Key activities** | Forecasts, reports and screens; quarterly re-calibration; public validation and scoring |
 | **Key partners** (proposed, none engaged yet) | Mini-grid operators; a neutral data steward (e.g. AMDA); RBF programmes (e.g. Nigeria REA/DARES); open-data providers |
-| **Cost structure** | Data $0; 0.76 CPU-s per forecast (measured); hosting about $300/yr; team about $60k/yr (assumption). Marginal cost per extra site is close to zero. |
+| **Cost structure** | Data $0; under 1 CPU-s per forecast (measured); hosting about $300/yr; team about $60k/yr (assumption). Marginal cost per extra site is close to zero. |
 
 ## Who we sell to first (go-to-market)
 
