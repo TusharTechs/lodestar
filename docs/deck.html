@@ -86,7 +86,7 @@ img { display: block; }
       <li><b>Bankable Demand Report</b> per site for developers and lenders (proposed ~$300, under 0.1% of a ~$585k mini-grid)</li>
       <li><b>Portfolio screening</b> subscriptions for DFIs and RBF programmes</li>
       <li>Households pay nothing; each report checks their bill against the AMDA ARPU benchmark</li></ul>
-      <p class="xs muted">Running cost: open data, no API keys, runs on a laptop or a free cloud tier.</p></div>
+      <p class="xs muted"><b>Measured:</b> 0.76 CPU-s and 6 KB per forecast. <b>Break-even:</b> ~200 paid reports/yr, 3.3% of the 6,116 sites AMDA members plan (team cost assumed $60k/yr). Open data, no API keys, runs on a laptop.</p></div>
     <div class="card"><h3>Demand Bureau: safe meter-data sharing</h3><ul class="small">
       <li><b>Give-to-get</b>, borrowed from credit bureaus: share site-month aggregates, get benchmarks and narrower bands</li>
       <li>No customer data; release only cells with ≥3 sites from ≥2 operators</li>
@@ -105,21 +105,20 @@ img { display: block; }
 
 <!-- 5 -->
 <section class="s dark">
-  <div class="kick">Scale &amp; impact</div>
-  <h2>Built for Africa first. Works anywhere there are rooftops.</h2>
-  <div class="grid" style="grid-template-columns:1fr 1fr;gap:22px">
-    <div class="card"><h3>How it travels</h3><ul class="small">
-      <li>Building footprints and OpenStreetMap cover all of Africa, plus South/Southeast Asia and Latin America</li>
-      <li>Demoed in Nigeria and Kenya, validated in DRC; a new country needs only its regional benchmark, then Bureau data calibrates it</li>
-      <li>Open source and self-hostable: data sovereignty for governments, no vendor lock-in</li>
-      <li>Flags settlements too small for a mini-grid (solar home systems instead) and sites near the grid</li></ul></div>
-    <div class="card"><h3>Access · Affordability · Availability</h3><ul class="small">
-      <li><b>Access:</b> a defensible P90 is what gets the next site financed</li>
-      <li><b>Affordability:</b> right-sizing avoids stranded capital that ends up in the tariff. Every 10% of avoidable oversizing across the 217k mini-grids needed is ~$12.7B of capital (on ESMAP's $127B; illustrative)</li>
-      <li><b>Availability:</b> sizing against the range, not a guess, prevents the evening brownouts of undersized systems</li></ul></div>
+  <div class="kick">Impact &amp; scale · same real meters, turned into decisions</div>
+  <h2>Right-sized, financeable, and reachable from any phone.</h2>
+  <div class="grid" style="grid-template-columns:repeat(4,1fr);gap:14px">
+    <div class="card stat"><b>−72%</b>capacity mismatch at year 3 vs a desk-estimate build, replaying real metered demand (155 → 44 kWp, two DRC sites)</div>
+    <div class="card stat"><b>+37% → +6%</b>Mutwanga: desk build oversized; Lodestar's build-at-P50-then-expand plan was within 6%</div>
+    <div class="card stat"><b>−49%</b>cost of power when sized on P50 instead of the optimistic P10 (avg. of 20 villages)</div>
+    <div class="card stat"><b>$0.20–0.40</b>/kWh tariff needed by mini-grid candidates with a Nigeria-NEP-style $600/connection grant, vs ~$1 unsubsidised</div>
   </div>
-  <p style="font:700 22pt/1.25 Georgia,serif;margin:30px 0 0;max-width:11in">Lodestar makes demand bankable, so the next 200,000 mini-grids get built at the right size.</p>
-  <p class="muted small" style="margin-top:10px"><b style="color:#fff">Next:</b> 2–3 operators for the M0–3 backtest, one RBF programme as pilot partner, and a neutral host for the Demand Bureau.</p>
+  <div class="grid" style="grid-template-columns:1fr 1fr;gap:18px;margin-top:16px">
+    <div class="card"><h3>Portfolio screener for RBF programmes</h3><p class="small">20 villages in 15 CPU-seconds: <b>1</b> bankable with an RBF grant, <b>4</b> need an anchor load, <b>12</b> are solar-home-system territory, <b>3</b> near the grid. Telling a programme where <i>not</i> to build is impact too. Nigeria's DARES alone targets 1,000+ mini-grids.</p></div>
+    <div class="card"><h3>Built for the field, and for anywhere with rooftops</h3><p class="small"><b>USSD + SMS:</b> a forecast in one 160-character text on a feature phone. <b>Offline pack:</b> 12 KB, opens without internet. Footprints and OpenStreetMap cover all of Africa, South/Southeast Asia and Latin America; a new country needs only its regional benchmark.</p></div>
+  </div>
+  <p style="font:700 20pt/1.25 Georgia,serif;margin:20px 0 0;max-width:11.5in">Lodestar makes demand bankable, so the next 200,000 mini-grids get built at the right size.</p>
+  <p class="muted small" style="margin-top:6px"><b style="color:#fff">Next:</b> 2–3 operators for the M0–3 backtest, one RBF programme as pilot partner, a neutral host for the Demand Bureau.</p>
   <div class="foot"><span>Team Lodestar · Tushar Agarwal · lodestar-utfz.onrender.com · github.com/TusharTechs/lodestar</span><span>5 / 5</span></div>
 </section>
 </body></html>

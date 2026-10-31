@@ -1,0 +1,6 @@
+{
+ "seconds_per_report": 0.76479315,
+ "report_kb_gzip": 5.646826171875,
+ "n_sites": 20,
+ "note": "CPU seconds per full report (20,000 draws incl. driver waterfall and finance), measured on a laptop"
+}

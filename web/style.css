@@ -35,7 +35,14 @@ nav button.on, nav button:hover { background: rgba(255,255,255,.1); color: #fff;
 .empty { max-width: 640px; margin: 8vh auto; }
 .empty h1 { font-size: 30px; line-height: 1.15; }
 .page { max-width: 1040px; margin: 0 auto; padding: 24px 22px 60px; overflow-y: auto; width: 100%; }
-#validation, #bureau, #ledger, #method { overflow-y: auto; }
+#validation, #bureau, #ledger, #method, #impact, #portfolio { overflow-y: auto; }
+.phone { width: 260px; border: 10px solid #17252e; border-radius: 26px; background: #1d2b22; padding: 14px 12px 18px; color: #c8f7c5; font: 13px/1.45 ui-monospace, Menlo, monospace; min-height: 330px; }
+.phone .scr { background: #0e1a12; border-radius: 6px; padding: 10px; min-height: 210px; white-space: pre-wrap; }
+.phone .keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 10px; }
+.phone .keys button { background: #2c3b31; color: #c8f7c5; border: 0; border-radius: 6px; padding: 6px 0; font: inherit; cursor: pointer; }
+.cat { font-size: 11px; padding: 2px 8px; border-radius: 9px; white-space: nowrap; }
+.cat.rbf { background: #e5f1ee; color: #2a7d6e; } .cat.anchor { background: #fdf3dc; color: #8a6514; }
+.cat.shs { background: #eef2f4; color: #34454f; } .cat.grid { background: #fbeee6; color: #9a4523; }
 
 .rhead { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
 .rhead h2 { margin: 0; font-size: 26px; }

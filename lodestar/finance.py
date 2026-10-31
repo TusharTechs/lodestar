@@ -135,6 +135,7 @@ def stress_test(draws, feat, region: str, profile: dict, a=None, uplift: float =
     def tariff_needed(capex, served, grant_usd=0.0):
         """Tariff that earns the hurdle IRR on the P50 path (revenue is linear in tariff)."""
         e = np.median(served, 0)
+        grant_usd = min(grant_usd, capex)
         return ((capex - grant_usd) + (c50 * OPEX_PER_CUSTOMER_YR * disc).sum()) / ((e * a["collection_rate"] * disc).sum())
 
     tenor, grace = int(a["debt_tenor"]), int(a["debt_grace_years"])

@@ -3,17 +3,17 @@
 <style>
 @page { size: Letter; margin: 0.35in 0.42in; }
 * { box-sizing: border-box; }
-body { font: 8.7pt/1.3 "Helvetica Neue", Arial, sans-serif; color: #17252e; margin: 0; }
+body { font: 8.25pt/1.27 "Helvetica Neue", Arial, sans-serif; color: #17252e; margin: 0; }
 h1 { font: 700 19pt Georgia, serif; margin: 0; letter-spacing: -.01em; }
 .sub { color: #c4552d; font: italic 10.5pt Georgia, serif; margin: 2px 0 6px; }
 .meta { font-size: 8.4pt; color: #5b6b75; border-bottom: 2px solid #17252e; padding-bottom: 5px; margin-bottom: 6px; }
 table { width: 100%; border-collapse: collapse; }
-td { padding: 3px 5px; vertical-align: top; border-bottom: 1px solid #dfe5e8; }
+td { padding: 2px 5px; vertical-align: top; border-bottom: 1px solid #dfe5e8; }
 td.k { width: 21%; font-weight: 700; font-size: 8.6pt; color: #34454f; background: #f6f4ef; }
 b.n { color: #c4552d; }
 .kpis { display: flex; gap: 6px; margin: 4px 0 2px; }
 .kpis div { flex: 1; border: 1px solid #dfe5e8; border-radius: 3px; padding: 3px 6px; font-size: 7.8pt; color: #5b6b75; }
-.kpis b { display: block; font: 700 13pt Georgia, serif; color: #c4552d; }
+.kpis b { display: block; font: 700 11.5pt Georgia, serif; color: #c4552d; }
 .foot { font-size: 7.4pt; color: #5b6b75; margin-top: 5px; }
 ul { margin: 0; padding-left: 14px; } li { margin: 0; }
 </style></head><body>
@@ -27,10 +27,10 @@ ul { margin: 0; padding-left: 14px; } li { margin: 0; }
 <tr><td class="k">Proof of concept (built this weekend)</td><td>Working web app and API with 20+ villages in Nigeria, Kenya and DRC, live forecasts for any clicked location, a <b>Demand Bureau</b> upload that narrows the band with an operator's metered months, and a public <b>forecast ledger</b> (each forecast hashed and timestamped before outcomes are known).</td></tr>
 <tr><td class="k">Brief success metric: error vs metered demand on held-out sites</td><td>The organisers had no partner meter data, so we found a public CC0 panel of three metered DRC mini-grids (Lunanga et al. 2026). Forecasting the two village sites from <b>open data only</b> (footprints + OSM, no census, no site meters; ratios and shapes taken from the other sites):
 <div class="kpis"><div><b>5 of 6</b>site-years of metered energy inside the P90–P10 band (target 80%)</div><div><b>81%</b>of metered months inside the band</div><div><b>−26% / −29%</b>year-3 (sizing-year) P50 error, Lubero / Mutwanga</div><div><b>40%</b>mean annual error, years 1–3 (ref.: 37% per-site ML, Allee et al.)</div></div>
-Honest limits: two sites is method validation; a census-based flat estimate scored 36% on the same sites but gives no range; learning from 12 metered months loses to persistence when shocks hit (Mutwanga conflict). All reported in the app.</td></tr>
-<tr><td class="k">Estimated cost &amp; who pays</td><td><b>Running cost:</b> open data only, no API keys; runs on a laptop or a free cloud tier (pre-computed features plus a small model). <b>Revenue (proposed):</b> single-site forecasts free (adoption); a paid <b>Bankable Demand Report</b> per site for developers and lenders (proposed ~$300, under 0.1% of a ~$585k mini-grid); portfolio-screening subscriptions for DFIs and RBF programmes. <b>Lowest-income users pay nothing:</b> they gain from right-sized systems (lower tariffs, fewer brownouts); each report checks the household bill against the AMDA ARPU benchmark.</td></tr>
+<b>In decisions:</b> replaying the real metered demand, Lodestar's build-at-P50-then-expand plan cut year-3 capacity mismatch by <b>72%</b> vs a desk-estimate build (Mutwanga: desk <b>+37%</b> oversized, Lodestar +6%); right-sizing on P50 instead of P10 cuts the cost of power <b>~49%</b>. Honest limits: two sites; a census-based flat estimate scored 36% but gives no range; after 12 metered months a conflict shock made persistence better. All reported in the app.</td></tr>
+<tr><td class="k">Estimated cost &amp; who pays</td><td><b>Running cost (measured):</b> 0.76 CPU-s and 6 KB per forecast; open data, no API keys. <b>Break-even:</b> ~200 paid reports/yr = 3.3% of the 6,116 sites AMDA members plan (team cost assumed). <b>Revenue (proposed):</b> single-site forecasts free (adoption); a paid <b>Bankable Demand Report</b> per site for developers and lenders (proposed ~$300, under 0.1% of a ~$585k mini-grid); portfolio-screening subscriptions for DFIs and RBF programmes. <b>Lowest-income users pay nothing:</b> they gain from right-sized systems (lower tariffs, fewer brownouts); with a Nigeria-NEP-style $600/connection grant the viable sites need $0.20–0.40/kWh, within AMDA's observed tariffs.</td></tr>
 <tr><td class="k">6–18 month deployment path</td><td><ul><li><b>M0–3:</b> backtest on 2–3 operators' historical meters under the Demand Bureau protocol (site-month aggregates only).</li><li><b>M3–6:</b> pre-register forecasts for 10 sites before commissioning in the public ledger.</li><li><b>M6–12:</b> score them against meters; integrate with one RBF programme's site-validation workflow.</li><li><b>M12–18:</b> 5 countries; paid reports to lenders. DTECH 2027 (March) as the MVP milestone.</li></ul></td></tr>
-<tr><td class="k">How it scales</td><td>Footprints and OSM cover all of Africa (and South/Southeast Asia, Latin America). A new country needs only its regional benchmark; Demand Bureau data then calibrates it. Running cost falls per site as forecasts are pre-computed. Open-source and self-hostable: no vendor lock-in, data sovereignty for governments.</td></tr>
+<tr><td class="k">How it scales</td><td>Footprints and OSM cover all of Africa (and South/Southeast Asia, Latin America). A new country needs only its regional benchmark; Demand Bureau data then calibrates it. Running cost falls per site as forecasts are pre-computed. Portfolio screener ranks every village for RBF programmes (20 in 15 CPU-s: 1 RBF-bankable, 4 need an anchor, 12 solar-home-system, 3 near grid). Reaches the field by USSD/SMS (one 160-char text) and a 12 KB offline pack. Open source and self-hostable.</td></tr>
 <tr><td class="k">Biggest risk &amp; how we test it</td><td><b>Thin metered data</b> limits calibration and point accuracy. Test early: the M0–3 operator backtest; the <b>Demand Bureau</b> (give-to-get, k-anonymous: ≥3 sites, ≥2 operators per published cell; federated parameter-sharing option; neutral steward such as AMDA) grows the evidence base, and the <b>forecast ledger</b> makes every miss visible.</td></tr>
 <tr><td class="k">Prior work disclosure</td><td>None. All code, models and analysis were built during the sprint (Oct 30 – Nov 1, 2026). Open-source libraries and public datasets (listed in the README) were used; an AI coding assistant was used during development.</td></tr>
 </table>

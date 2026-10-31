@@ -30,6 +30,8 @@ function showTab(t) {
   if (t === "bureau") renderBureau();
   if (t === "ledger") renderLedger();
   if (t === "method") renderMethod();
+  if (t === "impact") renderImpact();
+  if (t === "portfolio") renderPortfolio();
   history.replaceState(null, "", "#" + t + (t === "explore" && current ? "/" + current : ""));
 }
 
@@ -135,6 +137,7 @@ function renderReport(r, prior) {
     <div class="actions">
       <a class="btn primary" href="/api/sites/${r.site.site_id}/memo" target="_blank">Lender memo (PDF)</a>
       <a class="btn" href="/api/sites/${r.site.site_id}/load-8760.csv">8760 load for HOMER</a>
+      <a class="btn" href="/api/sites/${r.site.site_id}/pack.zip" title="Memo, report, load file and SMS summary for use without internet">Offline pack</a>
     </div></div>
   ${flags.map(w => `<div class="flag">${esc(w)}</div>`).join("")}
   <div class="headline">
@@ -227,12 +230,12 @@ function renderFinance(f) {
     <div class="kpi"><div class="l">Grant needed for ${pct(a.hurdle_irr)} IRR</div><div class="v">${pct(f.grant_needed.p50_demand)}</div><div class="s">of CAPEX (${usd(f.grant_per_connection_usd)}/connection) at P50 · ${pct(f.grant_needed.p90_demand)} at P90</div></div>
     <div class="kpi"><div class="l">Debt safe on P90 demand</div><div class="v">${usd(f.safe_debt_p90_usd)}</div><div class="s">${f.safe_debt_p90_usd > 0 ? `DSCR ≥ ${a.dscr_covenant}, ${a.debt_tenor} yrs at ${pct(a.debt_rate)}, ${a.debt_grace_years}-yr grace` : f.first_year_p90_covers_opex ? `P90 cash flow covers OPEX only from year ${f.first_year_p90_covers_opex}` : "P90 cash flow does not cover OPEX"}</div></div>
     <div class="kpi"><div class="l">If debt is sized on P50 instead</div><div class="v">${pct(f.prob_dscr_breach_if_p50_debt)}</div><div class="s">breach risk on ${usd(f.debt_p50_usd)}${f.breach_below_kwh_month ? `; breaks below ${mwh(f.breach_below_kwh_month)} MWh/mo (${f.breach_percentile_label})` : ""}</div></div>
-    <div class="kpi"><div class="l">Unsubsidised tariff needed</div><div class="v">$${f.required_tariff_usd_kwh.toFixed(2)}</div><div class="s">per kWh vs $${f.region_tariff_usd_kwh.toFixed(2)} regional average</div></div>
+    <div class="kpi"><div class="l">Tariff needed with RBF grant</div><div class="v">$${f.tariff_with_rbf_usd_kwh.toFixed(2)}</div><div class="s">per kWh with $${f.rbf_benchmark_per_connection_usd[1]}/connection (Nigeria NEP), vs $${f.region_tariff_usd_kwh.toFixed(2)} regional average; $${f.required_tariff_usd_kwh.toFixed(2)} with no grant</div></div>
   </div>
   <h4 style="margin:14px 0 4px">Sizing options</h4>
-  <table class="t"><tr><th>Size the system on</th><th class="n">PV kWp</th><th class="n">Battery kWh</th><th class="n">CAPEX</th><th class="n">IRR at P50</th><th class="n">Unserved energy, median</th><th class="n">Unserved if P10</th><th class="n">Breach risk, P50 debt</th></tr>
+  <table class="t"><tr><th>Size the system on</th><th class="n">PV kWp</th><th class="n">Battery kWh</th><th class="n">CAPEX</th><th class="n">Cost of power</th><th class="n">IRR at P50</th><th class="n">Unserved energy, median</th><th class="n">Unserved if P10</th><th class="n">Breach risk, P50 debt</th></tr>
   ${[["p90", "P90 demand (undersize risk)"], ["p50", "P50 demand (recommended, modular)"], ["p10", "P10 demand (oversize risk)"]].map(([k, lab]) =>
-    `<tr class="${k === f.recommended ? "rec" : ""}"><td>${lab}</td><td class="n">${fmt(o[k].pv_kwp)}</td><td class="n">${fmt(o[k].battery_kwh)}</td><td class="n">${usd(o[k].capex_usd)}</td><td class="n">${pct(o[k].irr_p50, 1)}</td><td class="n">${pct(o[k].unserved_share_median)}</td><td class="n">${pct(o[k].unserved_share_p10_demand)}</td><td class="n">${pct(o[k].prob_dscr_breach_if_p50_debt)}</td></tr>`).join("")}</table>
+    `<tr class="${k === f.recommended ? "rec" : ""}"><td>${lab}</td><td class="n">${fmt(o[k].pv_kwp)}</td><td class="n">${fmt(o[k].battery_kwh)}</td><td class="n">${usd(o[k].capex_usd)}</td><td class="n">$${o[k].cost_of_power_usd_kwh.toFixed(2)}/kWh</td><td class="n">${pct(o[k].irr_p50, 1)}</td><td class="n">${pct(o[k].unserved_share_median)}</td><td class="n">${pct(o[k].unserved_share_p10_demand)}</td><td class="n">${pct(o[k].prob_dscr_breach_if_p50_debt)}</td></tr>`).join("")}</table>
   <div class="row2" style="margin-top:10px">
     <div><h4 style="margin:4px 0">Project IRR across demand draws</h4><div class="chart small"><canvas id="irr"></canvas></div></div>
     <div><h4 style="margin:4px 0">Cash available for debt service, by year</h4><div class="chart small"><canvas id="dscr"></canvas></div></div>
@@ -342,6 +345,93 @@ tariff_usd_kwh, outage_hours        (optional)</pre>
   el.dataset.done = 1;
 }
 
+/* ---------------- impact ---------------- */
+async function renderImpact() {
+  const el = $("#impactpage"); if (el.dataset.done) return;
+  const [v, ec, pf] = await Promise.all([get("/api/validation"), get("/api/economics"), get("/api/portfolio")]);
+  const R = v.results, D = R.decision_backtest || {}, S = (R.summary || {}).decision_backtest || {}, E = R.summary.end_to_end_village || {};
+  const plan = { desk: "Desk estimate, single build", lodestar: "Lodestar: build at P50, expand on metered demand", hindsight: "Hindsight (perfect knowledge)" };
+  const rows = Object.entries(D).map(([site, r]) => Object.entries(plan).map(([k, lab]) => { const x = r[k]; return `<tr class="${k === "lodestar" ? "rec" : ""}"><td>${site}</td><td>${lab}</td><td class="n">${fmt(x.final_kwp)}</td><td class="n">${k === "hindsight" ? "—" : (x.kwp_vs_hindsight_y3 >= 0 ? "+" : "") + pct(x.kwp_vs_hindsight_y3)}</td><td class="n">${usd(x.capex_usd)}</td><td class="n">${pct(x.idle_capacity_share_y3)}</td><td class="n">${pct(x.unserved_share)}</td><td class="n">${fmt(x.diesel_litres)}</td></tr>`; }).join("")).join("");
+  const cats = {}; pf.forEach(r => (cats[r.category] ||= []).push(r));
+  const a = S.desk || {}, b = S.lodestar || {};
+  const cop = pf.reduce((t, r) => t + (1 - r.cost_of_power_usd_kwh / r.cost_of_power_if_p10_usd_kwh), 0) / pf.length;
+  el.innerHTML = `<h1>Impact: what better forecasts are worth</h1>
+  <p>The brief's metric is forecast error against metered demand (see <a href="#validation" onclick="showTab('validation');return false">Validation</a>: real demand inside our range in ${pct(E.annual_coverage)} of site-years, from open data alone). Here we turn that into decisions, money and people, using the same real meters.</p>
+  <div class="grid4">
+    <div class="kpi main"><div class="l">Capacity mismatch at year 3</div><div class="v">${pct(1 - b.abs_capacity_gap_kwp / a.abs_capacity_gap_kwp)} less</div><div class="s">${fmt(a.abs_capacity_gap_kwp)} → ${fmt(b.abs_capacity_gap_kwp)} kWp vs hindsight, two metered sites</div></div>
+    <div class="kpi"><div class="l">Oversizing caught</div><div class="v">+37% → +6%</div><div class="s">Mutwanga: desk estimate vs Lodestar plan, year-3 capacity vs hindsight</div></div>
+    <div class="kpi"><div class="l">Cost of power: right-size vs oversize</div><div class="v">−${pct(cop)}</div><div class="s">building for P50 instead of the optimistic P10, average of the ${pf.length} villages</div></div>
+    <div class="kpi"><div class="l">Villages screened</div><div class="v">${pf.length}</div><div class="s">${(cats.shs || []).length} better served by solar home systems; ${(cats.grid || []).length} near the grid</div></div>
+  </div>
+  <div class="card"><h3>Decision backtest on real metered demand</h3>
+    <p class="lede">We replay each site's actual monthly demand (first 36 months) against three plans. <b>Desk:</b> one build sized on a survey-style estimate (households counted × typical uptake × AMDA benchmark use), the status quo the brief describes. <b>Lodestar:</b> build at the open-data P50, then add a 25% module when 6 months of metered demand average over 90% of capacity (max one per year, 3-month lead time). <b>Hindsight:</b> sized on actual year-3 demand.</p>
+    <table class="t"><tr><th>Site</th><th>Plan</th><th class="n">PV kWp by year 3</th><th class="n">vs hindsight</th><th class="n">CAPEX</th><th class="n">Idle capacity, year 3</th><th class="n">Unserved energy</th><th class="n">Backup diesel, litres</th></tr>${rows}</table>
+    <p class="src">Both sites together: Lodestar's plan cuts the capacity mismatch from ${fmt(a.abs_capacity_gap_kwp)} to ${fmt(b.abs_capacity_gap_kwp)} kWp, idle capital at year 3 from ${usd(a.idle_capital_y3_usd)} to ${usd(b.idle_capital_y3_usd)}, unserved energy from ${fmt(a.unserved_mwh)} to ${fmt(b.unserved_mwh)} MWh; it invests ${usd(b.capex_usd - a.capex_usd)} more in total because it serves Lubero's real demand that the desk estimate missed. Honest trade-off: at Mutwanga, starting at P50 left more demand unserved in year 1 than the oversized desk build. Unserved energy is valued as small-genset diesel (assumption: 3 kWh/litre; 2.68 kg CO₂/litre). Two sites; method illustration, not proof.</p></div>
+  <div class="row2">
+    <div class="card"><h3>Who gains</h3><ul class="small">
+      <li><b>Households and businesses</b> get a system sized to them: oversizing to the optimistic case roughly doubles the cost of power that ends up in tariffs (each site's sizing table), and undersizing means evening brownouts and diesel.</li>
+      <li><b>Developers and lenders</b> get a range they can lend against: debt sized on P50 breaks its covenant about half the time; on P90 it doesn't.</li>
+      <li><b>RBF programmes</b> screen settlements before money moves: of ${pf.length} villages here, ${(cats.shs || []).length} are solar-home-system territory, ${(cats.grid || []).length} are near the grid, ${(cats.anchor || []).length} need an anchor load and ${(cats.rbf || []).length} ${(cats.rbf || []).length === 1 ? "is" : "are"} bankable with a Nigeria-style $600/connection grant (<a href="#portfolio" onclick="showTab('portfolio');return false">Portfolio</a>).</li></ul></div>
+    <div class="card"><h3>Environment</h3><ul class="small">
+      <li><b>No stranded hardware:</b> at Mutwanga the desk plan would have installed ${fmt(D.Mutwanga ? D.Mutwanga.desk.final_kwp - D.Mutwanga.hindsight.final_kwp : 0)} kWp of PV (plus batteries) that year-3 demand did not need; Lodestar's plan ${fmt(D.Mutwanga ? D.Mutwanga.lodestar.final_kwp - D.Mutwanga.hindsight.final_kwp : 0)} kWp.</li>
+      <li><b>Less backup diesel when undersized:</b> at Lubero the desk build left ${fmt(D.Lubero ? D.Lubero.desk.unserved_mwh : 0)} MWh unserved (~${fmt(D.Lubero ? D.Lubero.desk.co2_t : 0)} t CO₂ if met by gensets) vs ${fmt(D.Lubero ? D.Lubero.lodestar.unserved_mwh : 0)} MWh (~${fmt(D.Lubero ? D.Lubero.lodestar.co2_t : 0)} t) with Lodestar's plan.</li>
+      <li>Every right-sized solar mini-grid replaces kerosene and diesel; getting more of them financed is the largest effect, and the hardest to measure in 48 hours.</li></ul></div>
+  </div>
+  <div class="card"><h3>Lodestar's own economics: it pays for itself</h3>
+    <div class="grid4">
+      <div class="kpi"><div class="l">Compute per forecast</div><div class="v">${ec.measured.seconds_per_report.toFixed(2)} s</div><div class="s">measured; ≈ $${ec.measured.compute_usd_per_report.toFixed(5)} of cloud CPU · ${ec.measured.report_kb_gzip.toFixed(1)} KB per report</div></div>
+      <div class="kpi"><div class="l">Break-even</div><div class="v">${fmt(ec.break_even_reports_yr)} reports/yr</div><div class="s">or ${ec.break_even_mix.portfolio_subscriptions} RBF subscriptions + ${fmt(ec.break_even_mix.reports)} reports · ${pct(ec.break_even_share_of_amda_pipeline, 1)} of AMDA members' planned sites</div></div>
+      <div class="kpi"><div class="l">Price of a report</div><div class="v">${pct(ec.report_price_share_of_minigrid_cost, 2)}</div><div class="s">of an average mini-grid's cost (${usd(ec.avg_minigrid_cost_usd)}, ESMAP $127B / 217k)</div></div>
+      <div class="kpi"><div class="l">Data and licences</div><div class="v">$0</div><div class="s">open data, open source, no API keys; runs on a laptop</div></div>
+    </div>
+    <p class="src">Proposed prices: $${ec.proposed_prices.report_usd} per Bankable Demand Report (developers, lenders), $${fmt(ec.proposed_prices.portfolio_usd_yr)}/yr portfolio screening (RBF programmes, DFIs); single-site forecasts stay free. Assumed costs: two analyst-engineers in Nairobi or Lagos ($${fmt(ec.assumed_costs.team_usd_yr)}/yr) plus hosting ($${fmt(ec.assumed_costs.hosting_usd_yr)}/yr). Pipeline: AMDA members plan ${fmt(ec.pipeline.amda_planned_sites)} sites; Nigeria's DARES targets ${fmt(ec.pipeline.dares_target_sites)}+; ESMAP estimates ${fmt(ec.pipeline.esmap_needed_minigrids)} needed. Maintained locally: Python on a laptop, quarterly re-fit as Demand Bureau data arrives, no GPU.</p></div>`;
+  el.dataset.done = 1;
+}
+
+/* ---------------- portfolio + SMS ---------------- */
+async function renderPortfolio() {
+  const el = $("#portfoliopage"); if (el.dataset.done) return;
+  const pf = await get("/api/portfolio");
+  const order = { rbf: 0, anchor: 1, grid: 2, shs: 3 };
+  pf.sort((a, b) => order[a.category] - order[b.category] || b.y3_p50 - a.y3_p50);
+  const cnt = c => pf.filter(r => r.category === c).length;
+  el.innerHTML = `<h1>Portfolio screener</h1>
+  <p>For a results-based-financing programme or DFI: every settlement forecast the same way, ranked by what it should get. ${pf.length} villages, ${(pf.length * 0.76).toFixed(0)} CPU-seconds in total; the 1,000-site Nigerian DARES pipeline would take minutes.</p>
+  <div class="grid4">
+    <div class="kpi"><div class="l"><span class="cat rbf">Mini-grid, bankable with RBF</span></div><div class="v">${cnt("rbf")}</div><div class="s">tariff with a $600/connection grant ≤ regional average</div></div>
+    <div class="kpi"><div class="l"><span class="cat anchor">Mini-grid, needs anchor load</span></div><div class="v">${cnt("anchor")}</div><div class="s">add a mill, clinic or appliance financing first</div></div>
+    <div class="kpi"><div class="l"><span class="cat shs">Solar home systems</span></div><div class="v">${cnt("shs")}</div><div class="s">&lt;100 connections or below MTF Tier 2 (6 kWh/month)</div></div>
+    <div class="kpi"><div class="l"><span class="cat grid">Check grid extension</span></div><div class="v">${cnt("grid")}</div><div class="s">within 5 km of a mapped line (GridFinder)</div></div>
+  </div>
+  <div class="card"><table class="t"><tr><th>Village</th><th>Recommendation</th><th class="n">Y3 P50 MWh/mo</th><th class="n">P90–P10</th><th class="n">Connections</th><th class="n">kWh per conn.</th><th class="n">CAPEX at P50</th><th class="n">Tariff with RBF</th><th></th></tr>
+  ${pf.map(r => `<tr><td><a href="#explore/${r.site_id}" onclick="openSite('${r.site_id}');return false">${esc(r.name)}</a> <span class="src">${esc(r.admin1 || "")}, ${r.country}${r.metered ? " · metered" : ""}</span></td><td><span class="cat ${r.category}">${esc(r.category_label)}</span></td><td class="n">${mwh(r.y3_p50)}</td><td class="n">${mwh(r.y3_p90)}–${mwh(r.y3_p10)}</td><td class="n">${fmt(r.connections_y3)}</td><td class="n">${fmt(r.kwh_per_connection, 1)}</td><td class="n">${usd(r.capex_usd)}</td><td class="n">$${r.tariff_with_rbf_usd_kwh.toFixed(2)}</td><td><a class="src" href="/api/sms?site=${r.site_id}" target="_blank">SMS</a></td></tr>`).join("")}</table>
+  <p class="src">Download: <a href="/api/portfolio" target="_blank">portfolio JSON</a>. Regional average tariffs from AMDA 2024 ($0.25 West & Central, $0.40 East & Southern).</p></div>
+  <div class="row2">
+    <div class="card"><h3>In the field, on any phone</h3>
+      <p class="lede">Field officers and community energy committees rarely have laptops or steady data. Lodestar answers over <b>USSD</b> and <b>SMS</b>: a forecast fits in one 160-character text. Try the USSD menu: the phone on the right calls the real <code>/ussd</code> endpoint, which follows the Africa's Talking callback format (not yet connected to a live short code).</p>
+      <p class="lede"><b>Offline:</b> every site has an <i>Offline pack</i> (memo that opens without internet, report, 8760 load file, SMS summary; about 12 KB zipped). A full report is about 6 KB, so the app works on 2G.</p>
+      <p class="src">SMS example: <code id="smsx">…</code></p></div>
+    <div class="card" style="display:flex;justify-content:center"><div class="phone"><div class="scr" id="ussdscr">Dial *384*1#</div>
+      <div class="keys">${["1", "2", "3", "4", "5", "6", "7", "8", "9"].map(k => `<button data-k="${k}">${k}</button>`).join("")}<button data-k="call" style="grid-column:span 2;background:#2a7d6e;color:#fff">Call *384*1#</button><button data-k="end" style="background:#9a4523;color:#fff">End</button></div></div></div>
+  </div>`;
+  fetch("/api/sms?site=" + (pf.find(r => r.category === "rbf") || pf[0]).site_id).then(r => r.text()).then(t => $("#smsx").textContent = t);
+  let path = [];
+  const send = async () => {
+    const body = new URLSearchParams({ sessionId: "demo", serviceCode: "*384*1#", phoneNumber: "", text: path.join("*") });
+    const t = await (await fetch("/ussd", { method: "POST", body })).text();
+    $("#ussdscr").textContent = t.replace(/^(CON|END) /, "");
+    if (t.startsWith("END")) path = null;
+  };
+  el.querySelectorAll(".phone button").forEach(b => b.onclick = () => {
+    const k = b.dataset.k;
+    if (k === "call") { path = []; send(); return; }
+    if (k === "end") { path = null; $("#ussdscr").textContent = "Dial *384*1#"; return; }
+    if (path === null) return;
+    path.push(k); send();
+  });
+  el.dataset.done = 1;
+}
+
 /* ---------------- ledger ---------------- */
 async function renderLedger() {
   const el = $("#ledgerpage"); const L = await get("/api/ledger");
@@ -381,4 +471,4 @@ function renderMethod() {
 initMap();
 loadSites();
 const t0 = location.hash.replace("#", "").split("/")[0];
-if (["validation", "bureau", "ledger", "method"].includes(t0)) showTab(t0);
+if (["validation", "bureau", "ledger", "method", "impact", "portfolio"].includes(t0)) showTab(t0);

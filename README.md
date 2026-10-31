@@ -41,9 +41,32 @@ What it does **not** show, stated plainly:
 - **Learning from a site's own meters (Demand Bureau update)** helps early. Sharing the first 6 metered months cuts error on the following months from 40% to 35%, with 77% band coverage. That beats carrying the last month forward (52%). After 12 months, Mutwanga's conflict-driven consumption collapse makes persistence better (31% vs 47%). Consecutive months are strongly autocorrelated (lag-1 ρ = 0.93 for connections, 0.66 for kWh per connection), so the update discounts them by the effective sample size.
 - **Goma** is a city network of about 16,700 potential customers, outside the village scope. It is reported for transparency.
 
+Closest open prior art: the IEA/MIT building-level access and demand model (CC-BY-4.0, trained on utility meters in Ghana, Senegal and Uganda) estimates day-one demand per building. Lodestar is complementary: it adds a calibrated range, growth over five years, validation on mini-grid meters, and a lender view, and it could take that model's per-building estimates as an input.
+
 Published reference points, measured differently: survey-based estimates miss individual customers by 65% ([CrossBoundary Innovation Lab](https://crossboundary.com/innovation-insight-machine-learning-to-predict-mini-grid-consumption/)). Site-level ML trained on many metered sites reached 37% per site (Allee et al., Tanzania).
 
 Reproduce with `python scripts/validate_drc.py`. It writes `data/derived/validation.json` and the figures in `docs/validation/`.
+
+## Impact: from forecast error to decisions, money and people
+
+- **Decision backtest on real metered demand** (`lodestar/decision.py`). We replay each DRC village site's actual monthly demand for 36 months against two plans. The first is a single build sized on a survey-style desk estimate, which is the status quo. The second is Lodestar's plan: build at the open-data P50, then add 25% modules when 6 months of metered demand average over 90% of capacity. Results:
+  - **Capacity mismatch at year 3 falls 72%** (155 → 44 kWp against hindsight).
+  - **Mutwanga's desk build would have been 37% oversized; Lodestar's plan +6%.** Lubero: desk −31% (16% of demand unserved), Lodestar +11% (2% unserved).
+  - **Trade-off:** Lodestar's plan invests more in total, because it serves the demand the desk estimate missed, and leaves more demand unserved at Mutwanga in year 1.
+- **Affordability.** Right-sizing at P50 instead of the optimistic P10 cuts the cost of power by **about 49%** on average across the 20 villages (Mutwanga $0.91 vs $1.85/kWh).
+- **Bankability against real programmes.** With a Nigeria NEP-style grant of $600/connection (AMDA 2024 reports $350–600), the mini-grid candidates need **$0.20–0.40/kWh** for a 12% IRR. That is in line with AMDA's observed tariffs ($0.24–0.40). Unsubsidised, at AMDA-benchmark costs, they would need about $1/kWh.
+- **Portfolio screening for RBF programmes** (`/api/portfolio`). Of the 20 villages:
+  - 1 is bankable with an RBF grant;
+  - 4 need an anchor load;
+  - 12 are solar-home-system territory (under 100 connections, or below World Bank MTF Tier 2 at 6 kWh/month);
+  - 3 are near the grid.
+- **Lodestar pays for itself.** A forecast takes 0.76 CPU-seconds (about $0.00001) and 6 KB. Break-even is about 200 paid reports a year: 3.3% of the 6,116 sites AMDA members plan (team and hosting costs are assumptions). A $300 report is 0.05% of an average mini-grid's cost.
+
+## Field access: SMS, USSD and offline
+
+- `GET /api/sms?site=…` or `?lat=…&lon=…` returns a single 160-character forecast text.
+- `POST /ussd` is a USSD menu in the Africa's Talking callback format. It is not connected to a live short code, and phone numbers are never stored.
+- `GET /api/sites/{id}/pack.zip` is an offline site pack: a memo that opens without internet, the report, the 8760 load file and the SMS summary (about 12 KB).
 
 ## How it works
 
