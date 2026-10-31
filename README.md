@@ -1,3 +1,5 @@
+<img src="web/img/logo.svg" width="64" alt="Lodestar logo">
+
 # Lodestar: bankable demand forecasts for mini-grids
 
 **What P90 energy-yield reports did for solar project finance, Lodestar does for mini-grid demand.**
@@ -169,4 +171,4 @@ docs/       validation figures, one-pager, deck
 
 ## Disclosure
 
-Everything in this repository was built during the sprint (30 Oct – 1 Nov 2026). No prior code existed. Open-source libraries: FastAPI, NumPy, SciPy, pandas, GeoPandas, Shapely, pyproj, DuckDB, rasterio, Jinja2, Matplotlib, MapLibre GL and Chart.js. An AI coding assistant was used during development. The app itself uses no language model: every number and sentence in a report comes from the model and deterministic templates.
+Everything in this repository was built during the sprint (30 Oct – 1 Nov 2026). No prior code existed. Open-source libraries: FastAPI, NumPy, SciPy, pandas, GeoPandas, Shapely, pyproj, DuckDB, rasterio, Jinja2, Matplotlib, MapLibre GL and Chart.js. An AI coding assistant was used during development, and the demo video's narration uses the open-source Kokoro text-to-speech voice. The app itself uses no language model: every number and sentence in a report comes from the model and deterministic templates.

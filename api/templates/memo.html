@@ -35,7 +35,7 @@
 <button class="print" onclick="window.print()">Save as PDF</button>
 <main>
 <header>
-  <div class="kicker">Lodestar · Bankable demand memo · Forecast {{ r.ledger.forecast_id if r.ledger else '' }}</div>
+  <div class="kicker"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="30" height="30" role="img" aria-label="Lodestar" style="vertical-align:-8px;margin-right:8px">  <rect width="64" height="64" rx="15" fill="#17252e"/>  <path d="M7 51 C23 48 39 40 57 24 L57 44 C40 50 23 53 7 54 Z" fill="#c4552d" opacity=".6"/>  <path d="M7 52.5 C23 50.5 39 45 57 34" stroke="#f2b48f" stroke-width="2.6" fill="none" stroke-linecap="round"/>  <path d="M32 5 L35.6 21.4 L50 25 L35.6 28.6 L32 45 L28.4 28.6 L14 25 L28.4 21.4 Z" fill="#e3b04b"/></svg>Lodestar · Bankable demand memo · Forecast {{ r.ledger.forecast_id if r.ledger else '' }}</div>
   <h1>{{ r.site.name }}{% if r.site.admin1 %}, {{ r.site.admin1 }}{% endif %} ({{ r.site.country }})</h1>
   <div class="src">{{ '%.4f'|format(r.site.lat) }}, {{ '%.4f'|format(r.site.lon) }} · service radius {{ r.site.radius_m|num }} m · issued {{ r.ledger.issued_at if r.ledger else '' }} · model {{ r.method.model_version }}</div>
 </header>

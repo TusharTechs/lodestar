@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Lodestar">
+  <rect width="64" height="64" rx="15" fill="#17252e"/>
+  <path d="M7 51 C23 48 39 40 57 24 L57 44 C40 50 23 53 7 54 Z" fill="#c4552d" opacity=".6"/>
+  <path d="M7 52.5 C23 50.5 39 45 57 34" stroke="#f2b48f" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+  <path d="M32 5 L35.6 21.4 L50 25 L35.6 28.6 L32 45 L28.4 28.6 L14 25 L28.4 21.4 Z" fill="#e3b04b"/>
+</svg>

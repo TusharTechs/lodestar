@@ -194,3 +194,6 @@ html, body { overflow-x: hidden; }
 .skel .grid4, .skel .card { margin-top: 18px; }
 @keyframes shimmer { from { background-position: 120% 0; } to { background-position: -120% 0; } }
 @media (prefers-reduced-motion: reduce) { .sk { animation: none; } }
+
+.brand { display: flex; align-items: center; gap: 8px; }
+.brand .logo { width: 28px; height: 28px; border-radius: 7px; }
