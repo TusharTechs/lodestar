@@ -1,0 +1,31 @@
+# Local-only research & planning (never push)
+PROJECT_BRIEF.md
+KICKOFF_PROMPT.md
+CLAUDE.md
+STATUS.md
+challenge/
+research/
+
+# Python / env
+.venv/
+__pycache__/
+*.pyc
+.env
+.env.*
+
+# Large or derived data (re-created by pipeline scripts)
+data/raw/large/
+data/cache/
+*.gpkg
+*.tif
+
+# Node
+node_modules/
+.next/
+out/
+.vercel/
+
+# Third-party raw data we don't redistribute (download scripts/README explain)
+data/raw/amda/
+data/raw/peoplesun/
+data/raw/ramp_ssa/
