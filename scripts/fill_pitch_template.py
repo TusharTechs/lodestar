@@ -4,6 +4,7 @@ from pptx import Presentation
 from pptx.util import Inches
 
 TPL, IMG, OUT = sys.argv[1], sys.argv[2], sys.argv[3]
+LOGO = "docs/img/logo.png"
 URL = "lodestar-utfz.onrender.com"
 
 FILL = {
@@ -142,5 +143,11 @@ if pic.height > h:
     pic.width, pic.height = int(pic.width * ratio), h
 pic.name = "Prototype screenshot"
 pic._element.nvPicPr.cNvPr.set("descr", "Lodestar app: Mutwanga year-3 forecast with P90-P10 band and the real metered demand line")
+# logo above the team name on the title slide
+s1 = prs.slides[0]
+title = next(s for s in s1.shapes if s.has_text_frame and s.text_frame.text.strip() == "Lodestar")
+lg = s1.shapes.add_picture(LOGO, title.left, title.top - Inches(0.95), width=Inches(0.8))
+lg.name = "Lodestar logo"
+lg._element.nvPicPr.cNvPr.set("descr", "Lodestar logo: a guiding star over a forecast band")
 prs.save(OUT)
 print("saved", OUT)
