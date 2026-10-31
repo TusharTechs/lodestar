@@ -149,5 +149,8 @@ title = next(s for s in s1.shapes if s.has_text_frame and s.text_frame.text.stri
 lg = s1.shapes.add_picture(LOGO, title.left, title.top - Inches(0.95), width=Inches(0.8))
 lg.name = "Lodestar logo"
 lg._element.nvPicPr.cNvPr.set("descr", "Lodestar logo: a guiding star over a forecast band")
+cp = prs.core_properties  # template metadata would otherwise label the PDF as the blank template
+cp.title, cp.author, cp.last_modified_by = "Lodestar: Brief 03 Pitch, Global Energy Hackathon 2026", "Tushar Agarwal", "Tushar Agarwal"
+cp.subject, cp.keywords = "Bankable demand forecasts for mini-grids", "Lodestar, mini-grid, demand forecast, P90"
 prs.save(OUT)
 print("saved", OUT)
