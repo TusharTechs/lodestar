@@ -2,6 +2,8 @@
 
 **What P90 energy-yield reports did for solar project finance, Lodestar does for mini-grid demand.**
 
+**Live app: https://lodestar-utfz.onrender.com** (free tier: the first load after idle can take about 30–60 s to wake up)
+
 Pick any unelectrified village in Africa. Lodestar returns:
 
 - a monthly demand forecast with a **P90 / P50 / P10 range**;
