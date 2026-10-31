@@ -83,7 +83,7 @@ It runs on a laptop. Deploy with `render.yaml` (free tier). No API keys are need
 |---|---|
 | `GET /api/sites` | demo villages and validation sites |
 | `GET /api/sites/{id}/report` | full forecast JSON |
-| `POST /api/forecast {lat, lon}` | forecast any location (fetches footprints, OSM and NASA POWER live, 1–4 min) |
+| `POST /api/forecast {lat, lon}` | forecast any location (fetches footprints, OSM and NASA POWER live, 2–5 min) |
 | `POST /api/sites/{id}/bureau` | update with metered site-months (CSV) |
 | `GET /api/sites/{id}/memo` | lender memo (print to PDF) |
 | `GET /api/sites/{id}/load-8760.csv` | hourly load for HOMER/REopt |
