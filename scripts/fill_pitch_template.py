@@ -80,6 +80,15 @@ NOTES = {
 }
 
 
+# The template's "Judges look for:" bar is guidance for teams; we use the same bar for our own takeaway.
+BOTTOM_LINE = {
+ 1: "On real meters, demand landed inside our range in 5 of 6 site-years, and right-sizing roughly halves the cost of power.",
+ 2: "A calibrated range, a growth curve and a lender view, validated on meters: none of the open tools we found do all four.",
+ 3: "Free for villagers, under a second of compute per forecast, and self-funding at about 200 paid reports a year.",
+ 4: "Live today on real data; the next step is a 10-site pilot with developers bidding into Nigeria's DARES programme.",
+}
+
+
 def set_par(par, text):
     runs = par.runs
     runs[0].text = text
@@ -109,6 +118,14 @@ for idx, pairs in FILL.items():
                     break
     if queue:
         raise SystemExit(f"slide {idx + 1}: unmatched {queue}")
+    if idx in BOTTOM_LINE:
+        bar = next(s for s in slide.shapes if s.name == "Judges look for text")
+        runs = bar.text_frame.paragraphs[0].runs
+        runs[0].text = "Bottom line:"
+        runs[1].text = "  " + BOTTOM_LINE[idx]
+        for r in runs[2:]:
+            r.text = ""
+        bar.name = "Bottom line text"
     slide.notes_slide.notes_text_frame.text = NOTES[idx]
 
 # slide 5: replace the image placeholder with the app screenshot (forecast vs real meters)
