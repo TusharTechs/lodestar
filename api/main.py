@@ -28,6 +28,7 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "pipeline"))
 
 from lodestar import economics as ECON  # noqa: E402
+from lodestar import personas as PERS  # noqa: E402
 from lodestar import report as R  # noqa: E402
 from lodestar.drc import load_panels  # noqa: E402
 
@@ -308,6 +309,12 @@ def portfolio():
                      "cost_of_power_if_p10_usd_kwh": (f.get("options") or {}).get("p10", {}).get("cost_of_power_usd_kwh"),
                      "metered": s["site_id"] in DRC_PANEL})
     return rows
+
+
+@app.get("/api/personas")
+def personas():
+    return {"factors": PERS.FACTORS, "personas": PERS.PERSONAS, "strategy": PERS.STRATEGY,
+            "note": "Scores are the team's judgement (1-5), with the evidence for each."}
 
 
 @app.get("/api/economics")

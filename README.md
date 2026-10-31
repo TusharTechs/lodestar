@@ -77,6 +77,19 @@ Reproduce with `python scripts/validate_drc.py`. It writes `data/derived/validat
 | **Key partners** (proposed, none engaged yet) | Mini-grid operators; a neutral data steward (e.g. AMDA); RBF programmes (e.g. Nigeria REA/DARES); open-data providers |
 | **Cost structure** | Data $0; 0.76 CPU-s per forecast (measured); hosting about $300/yr; team about $60k/yr (assumption). Marginal cost per extra site is close to zero. |
 
+## Who we sell to first (go-to-market)
+
+Each buyer group is described as one named person and scored 1–5. The scores are our judgement; the evidence for each is in `lodestar/personas.py` and on the app's Impact tab.
+
+| Persona | Urgency (head on fire) | Value / ability to pay | Accessibility | Feeds the Demand Bureau | Buyer score | Role |
+|---|---|---|---|---|---|---|
+| Head of project development at a developer bidding for RBF-funded sites | 5 | 3 | 4 | 5 | **12/15** | **Primary** |
+| Programme manager of an RBF window (e.g. Nigeria's DARES) | 4 | 5 | 2 | 5 | 11/15 | Secondary |
+| Investment officer at a mini-grid debt fund or DFI | 3 | 4 | 2 | 2 | 9/15 | Later |
+| Household or shop owner in the village | 5 | 1 | 1 | 1 | — | Beneficiary, never a payer |
+
+**Strategy:** start with developers bidding into RBF programmes. Their head is most on fire, they decide fast, and their meters feed the Demand Bureau. Each report they attach to a grant application shows the programme the method, which is the route to the RBF portfolio contract (the largest value). Lenders follow once the public ledger has 12–18 months of scored forecasts.
+
 ## Field access: SMS, USSD and offline
 
 - `GET /api/sms?site=…` or `?lat=…&lon=…` returns a single 160-character forecast text.

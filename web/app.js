@@ -354,7 +354,7 @@ tariff_usd_kwh, outage_hours        (optional)</pre>
 /* ---------------- impact ---------------- */
 async function renderImpact() {
   const el = $("#impactpage"); if (el.dataset.done) return;
-  const [v, ec, pf] = await Promise.all([get("/api/validation"), get("/api/economics"), get("/api/portfolio")]);
+  const [v, ec, pf, ps] = await Promise.all([get("/api/validation"), get("/api/economics"), get("/api/portfolio"), get("/api/personas")]);
   const R = v.results, D = R.decision_backtest || {}, S = (R.summary || {}).decision_backtest || {}, E = R.summary.end_to_end_village || {};
   const plan = { desk: "Desk estimate, single build", lodestar: "Lodestar: build at P50, expand on metered demand", hindsight: "Hindsight (perfect knowledge)" };
   const rows = Object.entries(D).map(([site, r]) => Object.entries(plan).map(([k, lab]) => { const x = r[k]; return `<tr class="${k === "lodestar" ? "rec" : ""}"><td>${site}</td><td>${lab}</td><td class="n">${fmt(x.final_kwp)}</td><td class="n">${k === "hindsight" ? "—" : (x.kwp_vs_hindsight_y3 >= 0 ? "+" : "") + pct(x.kwp_vs_hindsight_y3)}</td><td class="n">${usd(x.capex_usd)}</td><td class="n">${pct(x.idle_capacity_share_y3)}</td><td class="n">${pct(x.unserved_share)}</td><td class="n">${fmt(x.diesel_litres)}</td></tr>`; }).join("")).join("");
@@ -383,13 +383,19 @@ async function renderImpact() {
       <li><b>Less backup diesel when undersized:</b> at Lubero the desk build left ${fmt(D.Lubero ? D.Lubero.desk.unserved_mwh : 0)} MWh unserved (~${fmt(D.Lubero ? D.Lubero.desk.co2_t : 0)} t CO₂ if met by gensets) vs ${fmt(D.Lubero ? D.Lubero.lodestar.unserved_mwh : 0)} MWh (~${fmt(D.Lubero ? D.Lubero.lodestar.co2_t : 0)} t) with Lodestar's plan.</li>
       <li>Every right-sized solar mini-grid replaces kerosene and diesel; getting more of them financed is the largest effect, and the hardest to measure in 48 hours.</li></ul></div>
   </div>
+  <div class="card"><h3>Who we sell to first</h3>
+    <p class="lede">Each buyer group as one named person, scored 1–5 on urgency (whose head is most on fire), value / ability to pay and accessibility, plus who can feed the Demand Bureau with meter data. ${esc(ps.note)}</p>
+    <table class="t"><tr><th>Persona</th>${ps.factors.map(f => `<th class="n">${esc(f[1])}</th>`).join("")}<th class="n">Buyer score</th><th>Role</th></tr>
+    ${ps.personas.map(p => `<tr class="${p.role === "primary" ? "rec" : ""}"><td><b>${esc(p.group)}</b><br><span class="src">${esc(p.person)}</span></td>${ps.factors.map(f => `<td class="n" title="${esc(p.why[f[0]])}">${p.scores[f[0]]}</td>`).join("")}<td class="n"><b>${p.role === "beneficiary" ? "—" : p.buyer_score + "/15"}</b></td><td><span class="cat ${{ primary: "rbf", secondary: "anchor", later: "shs", beneficiary: "grid" }[p.role]}">${p.role}</span></td></tr>`).join("")}</table>
+    <p class="small" style="margin-top:8px"><b>Go-to-market:</b> ${esc(ps.strategy)}</p>
+    <details class="small"><summary style="cursor:pointer">Evidence behind each score</summary>${ps.personas.map(p => `<p><b>${esc(p.group)}</b> · ${esc(p.job)}<br>${ps.factors.map(f => `<i>${esc(f[1].split(":")[0])}:</i> ${esc(p.why[f[0]])}`).join("<br>")}</p>`).join("")}</details></div>
   <div class="card"><h3>Business model canvas</h3>
     <div class="bmc">
       <div class="c tall"><h4>Key partners</h4><ul><li>Mini-grid operators: meter data via the Demand Bureau</li><li>A neutral data steward (e.g. AMDA)</li><li>RBF programmes and electrification agencies (e.g. Nigeria REA / DARES)</li><li>Open-data providers: footprints, OpenStreetMap, NASA POWER, GridFinder</li></ul><p class="src">Proposed; none engaged yet.</p></div>
       <div class="c"><h4>Key activities</h4><ul><li>Forecasts, lender reports, portfolio screens</li><li>Quarterly re-calibration on Bureau data</li><li>Public validation and scoring</li></ul></div>
       <div class="c tall"><h4>Value propositions</h4><ul><li><b>Developers:</b> bankable P90/P50/P10 and growth curve before building, no survey</li><li><b>Lenders:</b> debt sized on P90, stress test, memo</li><li><b>RBF programmes:</b> screen hundreds of villages at once</li><li><b>Communities:</b> right-sized systems, about half the cost of power of oversizing</li></ul></div>
       <div class="c"><h4>Customer relationships</h4><ul><li>Free forecast → paid report</li><li>Demand Bureau give-to-get membership</li><li>Public track record</li></ul></div>
-      <div class="c tall"><h4>Customer segments</h4><ul><li>Mini-grid developers (AMDA members plan ${fmt(ec.pipeline.amda_planned_sites)} sites)</li><li>Lenders and DFIs</li><li>RBF programmes (DARES targets ${fmt(ec.pipeline.dares_target_sites)}+)</li><li>Beneficiaries, not payers: households and businesses</li></ul></div>
+      <div class="c tall"><h4>Customer segments</h4><ul><li><b>Primary:</b> developers bidding into RBF programmes (AMDA members plan ${fmt(ec.pipeline.amda_planned_sites)} sites)</li><li><b>Secondary:</b> RBF programmes (DARES targets ${fmt(ec.pipeline.dares_target_sites)}+)</li><li><b>Later:</b> lenders and DFIs, once the ledger has a track record</li><li>Beneficiaries, not payers: households and businesses</li></ul></div>
       <div class="c"><h4>Key resources</h4><ul><li>Open-data pipeline + calibrated model</li><li>Metered validation, ledger</li><li>Bureau data, growing with use</li></ul></div>
       <div class="c"><h4>Channels</h4><ul><li>Web app, API, HOMER export</li><li>USSD / SMS for field officers</li><li>Industry bodies, RBF onboarding</li></ul></div>
       <div class="c half3"><h4>Cost structure</h4>Data $0 · ${ec.measured.seconds_per_report.toFixed(2)} CPU-s per forecast (measured) · hosting ≈$${fmt(ec.assumed_costs.hosting_usd_yr)}/yr · team ≈$${fmt(ec.assumed_costs.team_usd_yr)}/yr (assumed) · marginal cost per extra site ≈ 0.</div>
