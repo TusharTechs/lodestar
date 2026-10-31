@@ -1,174 +1,292 @@
-<img src="web/img/logo.svg" width="64" alt="Lodestar logo">
+<p align="center"><img src="web/img/logo.svg" width="88" alt="Lodestar logo: a guiding star over a forecast band"></p>
 
-# Lodestar: bankable demand forecasts for mini-grids
+<h1 align="center">Lodestar</h1>
+<p align="center"><b>Bankable demand forecasts for mini-grids, before anyone builds.</b><br>
+What P90 energy-yield reports did for solar project finance, Lodestar does for mini-grid demand.</p>
 
-**What P90 energy-yield reports did for solar project finance, Lodestar does for mini-grid demand.**
-
-**Live app: https://lodestar-utfz.onrender.com** (free tier: the first load after idle can take about 30–60 s to wake up)
-
-Pick any unelectrified village in Africa. Lodestar returns:
-
-- a monthly demand forecast with a **P90 / P50 / P10 range**;
-- a **5-year growth curve**, split into connections × consumption per connection;
-- the **drivers in plain language**, each tagged as calibrated, benchmark or assumption;
-- a daily **load profile** and **system size**, with an 8760-hour load file for HOMER/REopt;
-- a **lender stress test** run across every Monte Carlo demand draw: viability gap (grant needed), debt that is safe on P90 demand, and covenant breach risk if debt is sized on P50 instead;
-- a one-click **lender memo** that is a deterministic template, with no language model involved.
-
-All of it is built **on open data only**, and validated **against real metered mini-grids**.
-
-> Global Energy Hackathon 2026 · Problem Brief 03 "Predict mini-grid demand before building" · Track 2, Digital Solutions & AI · Setting B (non-residential: developers, lenders, RBF programmes)
+<p align="center">Global Energy Hackathon 2026 · Problem Brief 03 "Predict mini-grid demand before building" · Track 2, Digital Solutions &amp; AI</p>
 
 ---
 
-## Validation against real meters
+## Links
 
-The organisers confirmed that no partner meter data would be provided for this brief. We used a public, CC0 metered panel instead: three mini-grids in North Kivu, DRC, with monthly connections and kWh from 2019 to 2024 ([Lunanga, Stoop, Verpoorten & Desbureaux 2026](https://doi.org/10.7910/DVN/KPDREF)).
-
-**The headline test uses open data only, on held-out sites.** For the two village-scale sites (Lubero and Mutwanga), the forecast uses building footprints and OpenStreetMap only. It sees no census and none of the site's meter data. The footprint-to-customer ratios and growth shapes come from the *other* sites only.
-
-| | Result |
+| | |
 |---|---|
-| Metered annual energy inside the P90–P10 band | **5 of 6 site-years (83%)**, target 80% |
-| Metered months inside the P90–P10 band | **81%** |
-| Year-3 (sizing year) P50 error | **−26% (Lubero), −29% (Mutwanga)** |
-| Mean absolute annual error, years 1–3 | 40% |
+| **Live app** | **https://lodestar-utfz.onrender.com** (free hosting: the first visit after idle can take 30–60 s to wake up) |
+| Demo video (4:17) | *link added at submission* |
+| Pitch video | *link added at submission* |
+| Pitch deck (organisers' template, 5 slides) | [`docs/Lodestar_Brief03_Pitch.pdf`](docs/Lodestar_Brief03_Pitch.pdf) · editable [`.pptx`](docs/Lodestar_Brief03_Pitch.pptx) |
+| One-page summary | [`docs/lodestar-one-pager.pdf`](docs/lodestar-one-pager.pdf) |
+| A site forecast tested against real meters | https://lodestar-utfz.onrender.com/#explore/cd-nk-mutwanga |
+| Example lender memo | https://lodestar-utfz.onrender.com/api/sites/cd-nk-mutwanga/memo |
+| Validation results | [Validation tab](https://lodestar-utfz.onrender.com/#validation) · [raw JSON](https://lodestar-utfz.onrender.com/api/validation) · reproduce with `python scripts/validate_drc.py` |
+| Track record (accuracy, forecast ledger, data freshness) | [Track record tab](https://lodestar-utfz.onrender.com/#ledger) · [`/api/metrics`](https://lodestar-utfz.onrender.com/api/metrics) |
+| Impact, business model, buyer personas | [Impact tab](https://lodestar-utfz.onrender.com/#impact) |
+| Portfolio screener + SMS/USSD demo | [Portfolio &amp; SMS tab](https://lodestar-utfz.onrender.com/#portfolio) |
+| API reference (interactive) | https://lodestar-utfz.onrender.com/docs |
+| Source code | https://github.com/TusharTechs/lodestar |
+
+<p align="center"><img src="docs/img/film_title.jpg" width="49%" alt="Lodestar title card from the demo video"> <img src="docs/img/film_footprints.jpg" width="49%" alt="Building footprints and points of interest for Mutwanga, DR Congo"></p>
+
+## At a glance
+
+| | |
+|---|---|
+| Real metered demand inside the P90–P10 range | **5 of 6** village site-years (target 80%), forecast from open data only, with none of the site's own meters |
+| Year-3 (sizing year) error, P50 vs meters | **−26%** Lubero · **−29%** Mutwanga |
+| Year-3 capacity vs hindsight, replaying real meter data | desk estimate **+37%** oversized → Lodestar plan **+6%** (Mutwanga); capacity mismatch **−72%** across both sites |
+| Cost of power, right-sizing at P50 vs building for the optimistic case | **−48%** on average across 20 villages |
+| Tariff needed with a Nigeria-style $600/connection results-based grant | **$0.20–0.40/kWh** for the viable sites, within AMDA's observed $0.24–0.40 |
+| Compute and payload per forecast | **under 1 CPU-second**, about **6 KB**; open data, no API keys |
+| Villages screened | **20** in Nigeria, Kenya and DR Congo; any other location on request, live |
+
+## The problem
+
+- **Scale:** 490 million people need the 217,000 mini-grids still to be built (ESMAP). Every one is sized before a single customer exists.
+- **Today's estimates are poor:** survey-based estimates miss individual customers' demand by 65% (CrossBoundary Innovation Lab).
+- **Oversizing is costly:** in CrossBoundary's 30 kW example, building twice too big drops project IRR from 12.5% to 6.1%.
+- **Undersizing is costly too:** it means evening brownouts and backup diesel.
+- **Finance stalls:** lenders cannot price a single-number guess, so sites are mis-sized or never financed.
+
+## What Lodestar does
+
+Pick any village and you get:
+
+- **a demand range, not a point:** P90 / P50 / P10 monthly energy from 20,000 Monte Carlo scenarios;
+- **growth over 5 years**, split into *connections ramp* × *consumption per connection*;
+- **plain-language basis:** what the forecast is built from, with every input's source and date, and every driver tagged *calibrated*, *benchmark* or *assumption*;
+- **a load profile and system size** (PV kWp, battery kWh), plus an 8760-hour load file for HOMER/REopt;
+- **a lender stress test across every scenario:**
+  - grant needed, and tariff needed with a results-based grant;
+  - debt that stays safe on P90 demand, and covenant-breach risk if sized on P50;
+  - cost of power for each sizing option;
+- **a one-click lender memo:** a deterministic template, no language model;
+- **the Demand Bureau:** an operator uploads metered site-months and the forecast re-weights, so the range tightens;
+- **a portfolio screener:** each settlement is classified as mini-grid (bankable with an RBF grant, or needing an anchor load), solar home systems, or check grid extension;
+- **field access:** a forecast in one 160-character SMS, a USSD menu in the Africa's Talking format, and a 12 KB offline site pack.
+
+## Architecture
+
+```mermaid
+flowchart LR
+  subgraph OPEN["Open data (no keys)"]
+    B["Building footprints<br/>VIDA · Google · Microsoft · OSM"]
+    O["OpenStreetMap<br/>schools · clinics · markets · mills · roads"]
+    G["GridFinder grid lines"]
+    N["NASA POWER solar"]
+    R["RAMP SSA load archetypes"]
+    A["AMDA 2024 benchmarks"]
+  end
+  M["Metered mini-grids<br/>North Kivu, DR Congo (CC0)"]
+
+  B & O & G & N --> P["pipeline/features.py<br/>site features"]
+  P --> V["lodestar/village.py<br/>customers, anchors, drivers"]
+  A --> V
+  M -->|"growth shapes, ratios<br/>(leave-one-site-out)"| V
+  V --> F["lodestar/forecast.py<br/>20,000-scenario Monte Carlo"]
+  F --> U["Bayesian update<br/>(Demand Bureau meters)"]
+  F & U --> FIN["lodestar/finance.py<br/>sizing · cash flow · stress test"]
+  R --> FIN
+  FIN --> REP["lodestar/report.py<br/>report · plain-language basis · ledger"]
+  M --> VAL["scripts/validate_drc.py<br/>backtest + decision replay"]
+  VAL --> REP
+  REP --> API["api/main.py · FastAPI"]
+  API --> WEB["Web app<br/>map · charts · tabs"]
+  API --> MEMO["Lender memo · 8760 CSV · offline pack"]
+  API --> SMS["SMS · USSD"]
+  API --> MET["/api/metrics<br/>accuracy · freshness · ledger"]
+```
+
+### How a forecast is made, in plain words
+
+1. **Who could connect:** building footprints within 1.5–2 km give households and businesses. The buildings-to-customers ratios are calibrated on census counts from two metered mini-grid towns.
+2. **How much each will use:** what African mini-grid customers actually use today (AMDA 2024, by region), adjusted for each village's drivers (wealth proxy, market, remoteness).
+3. **How fast it grows:** connection ramps and appliance acquisition are learned from 38–70 months of monthly meter data. A metered site's own forecast learns only from the *other* sites.
+4. **Big customers:** schools and clinics use published load profiles (RAMP). Mills are a stated assumption with wide uncertainty.
+5. **How sure we are:** 20,000 scenarios vary every uncertain input. P90 is the level demand beats in 9 of 10 scenarios, the number to lend against.
+
+```
+E(t) = Σ_segments  N_s · R_s / (1 + e^(−k_s (t − t0_s)))  ×  Q_s · (1 − a_s · e^(−t/τ_s))  +  anchors
+```
+
+## Evidence it works
+
+No partner meter data was available for this brief, so we used a public, CC0 metered panel: three mini-grids in North Kivu, DR Congo, with monthly connections and kWh, 2019–2024 ([Lunanga, Stoop, Verpoorten & Desbureaux 2026](https://doi.org/10.7910/DVN/KPDREF)).
+
+**Open data only, held out.** Each village-scale site is forecast from building footprints and OpenStreetMap. The forecast uses no census and none of the site's own meters, and its calibration comes from the other sites only.
 
 ![Open-data-only forecasts vs metered actuals](docs/validation/drc_end_to_end.png)
 
-What it does **not** show, stated plainly:
+| | Lubero | Mutwanga |
+|---|---|---|
+| Year 1 / 2 / 3 P50 error | +30% / −16% / −26% | −78% / −61% / −29% |
+| Year 1 / 2 / 3 inside P90–P10 | ✓ / ✓ / ✓ | ✗ / ✓ / ✓ |
 
-- **Two village sites is method validation, not proof.** Every forecast Lodestar issues is pre-registered in a public ledger (`data/ledger/forecasts.jsonl`) so it can be scored when meters report.
-- **A flat desk estimate that needs a census** had 36% annual error on the same two sites. It gives no range, and it missed the urban Goma network by 88%. We report it rather than hide it.
-- **Learning from a site's own meters (Demand Bureau update)** helps early. Sharing the first 6 metered months cuts error on the following months from 40% to 35%, with 77% band coverage. That beats carrying the last month forward (52%). After 12 months, Mutwanga's conflict-driven consumption collapse makes persistence better (31% vs 47%). Consecutive months are strongly autocorrelated (lag-1 ρ = 0.93 for connections, 0.66 for kWh per connection), so the update discounts them by the effective sample size.
-- **Goma** is a city network of about 16,700 potential customers, outside the village scope. It is reported for transparency.
+**Learning from shared meters.** After an operator shares 6 metered months, error on the following months falls from 40% to 35% (band coverage 77%). That beats carrying the last month forward (52%). Consecutive months are autocorrelated, so the update discounts them by the measured effective sample size.
 
-Closest open prior art: the IEA/MIT building-level access and demand model (CC-BY-4.0, trained on utility meters in Ghana, Senegal and Uganda) estimates day-one demand per building. Lodestar is complementary: it adds a calibrated range, growth over five years, validation on mini-grid meters, and a lender view, and it could take that model's per-building estimates as an input.
+**Replayed as a sizing decision** (`lodestar/decision.py`). We compare a single desk-estimate build with Lodestar's plan: build at P50, then add 25% modules when 6 months of metered demand average over 90% of capacity.
 
-Published reference points, measured differently: survey-based estimates miss individual customers by 65% ([CrossBoundary Innovation Lab](https://crossboundary.com/innovation-insight-machine-learning-to-predict-mini-grid-consumption/)). Site-level ML trained on many metered sites reached 37% per site (Allee et al., Tanzania).
+<p align="center"><img src="docs/img/film_validation.jpg" width="80%" alt="Validation and decision replay"></p>
 
-Reproduce with `python scripts/validate_drc.py`. It writes `data/derived/validation.json` and the figures in `docs/validation/`.
+**What this does not show:**
+- **Two village sites is method validation, not proof.** Every forecast is pre-registered in a public ledger (`data/ledger/forecasts.jsonl`) and scored when meters report.
+- **A census-based flat estimate scored 36%** on the same sites. It gives no range, and it missed the urban Goma network by 88%.
+- **After 12 metered months, a conflict-driven collapse at Mutwanga** makes "carry the last month forward" more accurate than our update.
+- **Trade-off in the decision replay:** Lodestar's plan invests more in total, because it serves Lubero demand the desk estimate missed, and it leaves more demand unserved at Mutwanga in year 1.
 
-## Impact: from forecast error to decisions, money and people
+All of this is reported in the app.
 
-- **Decision backtest on real metered demand** (`lodestar/decision.py`). We replay each DRC village site's actual monthly demand for 36 months against two plans. The first is a single build sized on a survey-style desk estimate, which is the status quo. The second is Lodestar's plan: build at the open-data P50, then add 25% modules when 6 months of metered demand average over 90% of capacity. Results:
-  - **Capacity mismatch at year 3 falls 72%** (155 → 44 kWp against hindsight).
-  - **Mutwanga's desk build would have been 37% oversized; Lodestar's plan +6%.** Lubero: desk −31% (16% of demand unserved), Lodestar +11% (2% unserved).
-  - **Trade-off:** Lodestar's plan invests more in total, because it serves the demand the desk estimate missed, and leaves more demand unserved at Mutwanga in year 1.
-- **Affordability.** Right-sizing at P50 instead of the optimistic P10 cuts the cost of power by **about 48%** on average across the 20 villages (Lubero $0.89 vs $1.80/kWh).
-- **Bankability against real programmes.** With a Nigeria NEP-style grant of $600/connection (AMDA 2024 reports $350–600), the mini-grid candidates need **$0.20–0.40/kWh** for a 12% IRR. That is in line with AMDA's observed tariffs ($0.24–0.40). Unsubsidised, at AMDA-benchmark costs, they would need about $1/kWh.
-- **Every forecast explains itself and the service tracks itself.** Each report opens with "How this forecast was made" in plain words, with every input's source and date. The **Track record** tab (`/api/metrics`) publishes accuracy against meters, all issued forecasts, and the age of each data input against a refresh target. Inputs past their target show as "due": GridFinder (2020) and the public meter panel (ends Dec 2024).
-- **Portfolio screening for RBF programmes** (`/api/portfolio`). Of the 20 villages:
-  - 1 is bankable with an RBF grant;
-  - 4 need an anchor load;
-  - 12 are solar-home-system territory (under 100 connections, or below World Bank MTF Tier 2 at 6 kWh/month);
-  - 3 are near the grid.
-- **Lodestar pays for itself.** A forecast takes under 1 CPU-second (about $0.00001) and 6 KB. Break-even is about 200 paid reports a year: 3.3% of the 6,116 sites AMDA members plan (team and hosting costs are assumptions). A $300 report is 0.05% of an average mini-grid's cost.
+## Who benefits, and who pays
 
-## Business model canvas
+| Buyer persona (scored 1–5) | Urgency | Value / ability to pay | Accessibility | Feeds the Demand Bureau | Role |
+|---|---|---|---|---|---|
+| Project head at a developer bidding for RBF-funded sites | 5 | 3 | 4 | 5 | **Primary** |
+| Programme manager of an RBF window (e.g. Nigeria's DARES, 1,000+ planned mini-grids) | 4 | 5 | 2 | 5 | Secondary |
+| Investment officer at a mini-grid debt fund or DFI | 3 | 4 | 2 | 2 | Later, after 12–18 months of scored forecasts |
+| Household or shop owner in the village | — | — | — | — | Beneficiary, never a payer |
 
-| Block | Lodestar |
+| Unit economics | |
 |---|---|
-| **Customer segments** | Mini-grid developers (AMDA members plan 6,116 sites); lenders and DFIs; RBF programmes and electrification agencies (Nigeria's DARES targets 1,000+ mini-grids). Households and businesses benefit but don't pay. |
-| **Value propositions** | **Developers:** a bankable P90/P50/P10 forecast and growth curve before building, with no survey. **Lenders:** debt sized on P90, a stress test across 20,000 scenarios, and a memo. **RBF programmes:** screen many villages at once (mini-grid, solar home systems or grid). **Communities:** right-sized systems, at about half the cost of power of oversizing. |
-| **Channels** | Web app and API with HOMER export; USSD/SMS for field officers; industry bodies; onboarding through RBF programmes; DTECH 2027 |
-| **Customer relationships** | Free forecast, then a paid report (self-serve); Demand Bureau give-to-get membership; a public track record |
-| **Revenue streams** (proposed) | Free single-site forecasts; a $300 Bankable Demand Report per site; $12k/yr portfolio screening. Break-even is about 200 reports a year. |
-| **Key resources** | Open-data pipeline and calibrated model; metered validation; forecast ledger; Demand Bureau data |
-| **Key activities** | Forecasts, reports and screens; quarterly re-calibration; public validation and scoring |
-| **Key partners** (proposed, none engaged yet) | Mini-grid operators; a neutral data steward (e.g. AMDA); RBF programmes (e.g. Nigeria REA/DARES); open-data providers |
-| **Cost structure** | Data $0; under 1 CPU-s per forecast (measured); hosting about $300/yr; team about $60k/yr (assumption). Marginal cost per extra site is close to zero. |
+| Price (proposed) | single-site forecasts free · **$300** Bankable Demand Report per site (0.05% of a ~$585k mini-grid) · **$12k/yr** portfolio screening |
+| Cost (measured / assumed) | data $0 · under 1 CPU-second per forecast (measured) · hosting ~$300/yr · team ~$60k/yr (assumption: two analyst-engineers in Nairobi or Lagos) |
+| Break-even | ~**200** reports a year, or 3 subscriptions + ~80 reports: about 3% of the 6,116 sites AMDA members plan |
+| Cost per site at scale | marginal cost per extra site is close to zero; the 20-village portfolio takes about 15 CPU-seconds |
+| Maintained locally | Python on a laptop, no GPU, no API keys; quarterly re-fit on Demand Bureau data; data freshness tracked against refresh targets |
 
-## Who we sell to first (go-to-market)
+The full business model canvas is on the [Impact tab](https://lodestar-utfz.onrender.com/#impact) and on slide 4 of the deck.
 
-Each buyer group is described as one named person and scored 1–5. The scores are our judgement; the evidence for each is in `lodestar/personas.py` and on the app's Impact tab.
+## Safe meter-data sharing: the Demand Bureau
 
-| Persona | Urgency (head on fire) | Value / ability to pay | Accessibility | Feeds the Demand Bureau | Buyer score | Role |
-|---|---|---|---|---|---|---|
-| Head of project development at a developer bidding for RBF-funded sites | 5 | 3 | 4 | 5 | **12/15** | **Primary** |
-| Programme manager of an RBF window (e.g. Nigeria's DARES) | 4 | 5 | 2 | 5 | 11/15 | Secondary |
-| Investment officer at a mini-grid debt fund or DFI | 3 | 4 | 2 | 2 | 9/15 | Later |
-| Household or shop owner in the village | 5 | 1 | 1 | 1 | — | Beneficiary, never a payer |
-
-**Strategy:** start with developers bidding into RBF programmes. Their head is most on fire, they decide fast, and their meters feed the Demand Bureau. Each report they attach to a grant application shows the programme the method, which is the route to the RBF portfolio contract (the largest value). Lenders follow once the public ledger has 12–18 months of scored forecasts.
-
-## Field access: SMS, USSD and offline
-
-- `GET /api/sms?site=…` or `?lat=…&lon=…` returns a single 160-character forecast text.
-- `POST /ussd` is a USSD menu in the Africa's Talking callback format. It is not connected to a live short code, and phone numbers are never stored.
-- `GET /api/sites/{id}/pack.zip` is an offline site pack: a memo that opens without internet, the report, the 8760 load file and the SMS summary (about 12 KB).
-
-## How it works
-
-```
-E(t) = Σ_segments  N_s · R_s / (1 + e^(−k_s (t − t0_s)))  ×  Q_s · (1 − a_s · e^(−t/τ_s))  +  anchor loads
-```
-
-- **N, potential customers:** from building footprints (VIDA merge of Google, Microsoft and OSM Open Buildings). The households-per-building and firms-per-large-building ratios are calibrated against the DRC census.
-- **Ramp shapes:** connection uptake *R, k, t0* and appliance acquisition *a, τ* are fitted on the metered DRC panel.
-- **Mature consumption levels *Q*:** AMDA *Benchmarking Africa's Minigrids 2024*, by region.
-- **Anchors:** schools and clinics (RAMP SSA archetypes) and mills (an assumption, with wide uncertainty), counted from OpenStreetMap.
-- **Uncertainty:** 20,000 Monte Carlo draws. Prior spreads are floored so that held-out P90–P10 coverage is about 80%.
-- **Demand Bureau update:** shared metered months re-weight the draws. The level is integrated out analytically, and the shapes are importance-sampled with tempering.
-- **Sizing and finance:** PV is sized on worst-month NASA POWER irradiance and the battery on night-time energy. CAPEX ($/kWp), OPEX ($/customer) and tariffs come from AMDA 2024. Each draw runs through a 20-year cash flow.
-
-## The Demand Bureau: safe meter-data sharing
-
-The Demand Bureau is a give-to-get data pool, modelled on credit bureaus:
-
-- **What is shared:** site-month aggregates only (`site_hash, country, admin1, months_since_cod, conn_household, conn_sme, kwh_per_household, kwh_per_sme`). No customer-level data.
-- **k-anonymous release:** a regional benchmark is published only when it pools at least 3 sites from at least 2 operators.
-- **Federated option:** an operator can share fitted parameters instead of raw series.
+- **Give-to-get**, as in credit bureaus: operators contribute site-month aggregates and receive regional benchmarks and narrower forecast ranges.
+- **Shared fields:** `site_hash, country, admin1, months_since_cod, conn_household, conn_sme, kwh_per_household, kwh_per_sme`. No customer-level data, names or meter IDs.
+- **k-anonymous release:** a regional figure is published only when at least 3 sites from at least 2 operators pool.
+- **Federated option:** share fitted parameters, not series.
 - **Steward:** a neutral sector body.
-- **Try it:** the app's Demand Bureau tab, or `POST /api/sites/{id}/bureau` with a CSV.
 
-## Run it
+## Trust: the forecast ledger and the track record
+
+- Every issued forecast is hashed (SHA-256) and timestamped before the site is built. Replaced forecasts are marked "superseded", never deleted.
+- `/api/metrics` publishes accuracy against meters, ledger counts, and each data input's age against its refresh target.
+- Inputs past their target are flagged **due**: GridFinder (2020) and the public meter panel (ends December 2024).
+
+## Run it locally
+
+Requirements: **Python 3.11 or 3.12**, about 1 GB of disk, and an internet connection for the map tiles. Tested on macOS and on Linux (the hosted app). Windows uses the same packages.
+
+**macOS / Linux**
+
+```bash
+git clone https://github.com/TusharTechs/lodestar.git
+cd lodestar
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn api.main:app --port 8000
+```
+
+**Windows (PowerShell)**
+
+```powershell
+git clone https://github.com/TusharTechs/lodestar.git
+cd lodestar
+py -3.12 -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+uvicorn api.main:app --port 8000
+```
+
+(In Command Prompt, activate with `.venv\Scripts\activate.bat`. If PowerShell blocks the script, run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once.)
+
+**With uv (any OS)**
 
 ```bash
 uv venv && uv pip install -r requirements.txt
-uvicorn api.main:app --port 8000          # http://localhost:8000
-python scripts/validate_drc.py            # validation figures and metrics
-python pipeline/select_sites.py --state NG:kn --max-candidates 2   # add villages (OSM + footprints + NASA POWER)
-python scripts/precompute.py              # rebuild the index, reports and ledger
+uv run uvicorn api.main:app --port 8000
 ```
 
-It runs on a laptop. Deploy with `render.yaml` (free tier). No API keys are needed.
+Then open **http://localhost:8000**. Everything needed for the 20 demo villages and the validation is in the repository; no keys or accounts are needed.
+
+| Optional task | Command |
+|---|---|
+| Re-run the validation (figures + `data/derived/validation.json`) | `python scripts/validate_drc.py` |
+| Rebuild every report and the ledger | `python scripts/precompute.py --force` |
+| Add villages in a state (OSM + footprints + NASA POWER) | `python pipeline/select_sites.py --state NG:kn --max-candidates 2` |
+| Lower memory use on small hosts | set `LODESTAR_DRAWS=8000` |
+
+### API
 
 | Endpoint | |
 |---|---|
 | `GET /api/sites` | demo villages and validation sites |
-| `GET /api/sites/{id}/report` | full forecast JSON |
-| `POST /api/forecast {lat, lon}` | forecast any location (fetches footprints, OSM and NASA POWER live, 2–5 min) |
-| `POST /api/sites/{id}/bureau` | update with metered site-months (CSV) |
-| `GET /api/sites/{id}/memo` | lender memo (print to PDF) |
-| `GET /api/sites/{id}/load-8760.csv` | hourly load for HOMER/REopt |
-| `GET /api/validation`, `GET /api/ledger` | backtest results; pre-registered forecasts |
+| `GET /api/sites/{id}/report` | full forecast JSON, including the plain-language basis |
+| `POST /api/forecast` `{lat, lon}` | forecast any location (fetches footprints, OSM and NASA POWER live; 2–5 min) |
+| `POST /api/sites/{id}/bureau` | Demand Bureau update with a CSV of metered site-months |
+| `GET /api/sites/{id}/memo` · `/load-8760.csv` · `/pack.zip` | lender memo · hourly load for HOMER/REopt · offline site pack |
+| `GET /api/portfolio` · `/api/personas` · `/api/economics` | screener · buyer personas · unit economics |
+| `GET /api/validation` · `/api/metrics` · `/api/ledger` | backtest · service metrics · pre-registered forecasts |
+| `GET /api/sms?site=…` · `POST /ussd` | SMS text · USSD menu |
 
-## Repository
+## Project structure
 
 ```
-lodestar/   growth model, Monte Carlo + Bayesian update, priors, village engine, finance, report, ledger
-pipeline/   feature extraction (footprints, OSM, GridFinder, NASA POWER) and site selection
-api/        FastAPI app + lender memo template
-web/        single-page app (MapLibre GL, Chart.js)
-scripts/    validation, grid clipping, precompute
-data/       DRC metered panel (CC0), site features, reports, ledger, small geo indexes
-docs/       validation figures, one-pager, deck
+lodestar/              forecasting engine
+  forecast.py          Monte Carlo simulation and Bayesian update from metered months
+  growth.py, priors.py growth curves, priors, benchmark levels
+  village.py           footprints + OSM -> customers, anchors, explainable drivers
+  finance.py           sizing, 20-year cash flow, stress test, cost of power, RBF tariff
+  decision.py          sizing-decision replay on real metered demand
+  report.py            report assembly, plain-language basis, forecast ledger
+  economics.py, personas.py   unit economics and buyer personas
+  drc.py               loader for the metered DR Congo panel
+pipeline/              feature extraction (footprints, OSM, GridFinder, NASA POWER) and site selection
+api/                   FastAPI app and lender-memo template
+web/                   single-page app (MapLibre GL, Chart.js), logo
+scripts/               validation, precompute, grid clipping, pitch-deck builder
+data/                  metered panel (CC0), site features and reports, ledger, small geo indexes
+docs/                  pitch deck, one-pager, validation figures, images
+render.yaml            one-click deploy on Render
 ```
 
-## Data and licences
+## Data sources and licences
 
 | Data | Source | Licence |
 |---|---|---|
-| Metered mini-grid panel | Lunanga et al. (2026), Energy Economics, doi:10.7910/DVN/KPDREF | CC0. The individual-level survey file is deliberately not redistributed. |
-| Building footprints | VIDA Google-Microsoft-OSM Open Buildings (source.coop) | CC-BY-4.0 / ODbL |
+| Metered mini-grid panel | Lunanga et al. (2026), Energy Economics, doi:10.7910/DVN/KPDREF | CC0 (the individual-level survey file is deliberately not redistributed) |
+| Building footprints | VIDA merge of Google, Microsoft and OSM Open Buildings (source.coop) | CC-BY-4.0 / ODbL |
 | Schools, clinics, markets, mills, roads | © OpenStreetMap contributors | ODbL |
 | Grid lines | GridFinder, Arderne et al. (2020), Zenodo 3628142 | CC-BY-4.0 |
-| Solar resource | NASA POWER | public |
+| Solar resource | NASA POWER | public domain |
 | Load shapes | RAMP SSA archetypes, Stevanato (2026), doi:10.5281/zenodo.22832973 | CC-BY-4.0 |
-| Benchmarks | AMDA, *Benchmarking Africa's Minigrids* 2024 | cited, not redistributed |
-| Satellite basemap (web) | Esri World Imagery | attribution shown in the app |
+| Benchmarks | AMDA, *Benchmarking Africa's Minigrids* 2024; ESMAP (2022); CrossBoundary Innovation Lab | cited, not redistributed |
+| Satellite basemap | Esri World Imagery | attribution shown in the app |
 
-## Disclosure
+## Open-source software
 
-Everything in this repository was built during the sprint (30 Oct – 1 Nov 2026). No prior code existed. Open-source libraries: FastAPI, NumPy, SciPy, pandas, GeoPandas, Shapely, pyproj, DuckDB, rasterio, Jinja2, Matplotlib, MapLibre GL and Chart.js. An AI coding assistant was used during development, and the demo video's narration uses the open-source Kokoro text-to-speech voice. The app itself uses no language model: every number and sentence in a report comes from the model and deterministic templates.
+| Component | Used for | Licence |
+|---|---|---|
+| FastAPI, Uvicorn | API and server | MIT, BSD-3 |
+| NumPy, SciPy, pandas | simulation and fitting | BSD-3 |
+| GeoPandas, Shapely, pyproj, rasterio, DuckDB, PyArrow | geospatial features | BSD-3, BSD-3, MIT, BSD-3, MIT, Apache-2.0 |
+| Jinja2, Matplotlib, requests | memo template, figures, data access | BSD-3, PSF-style, Apache-2.0 |
+| MapLibre GL JS, Chart.js | map and charts | BSD-3, MIT |
+| Inter, Source Serif 4 | typography | SIL OFL 1.1 |
+| python-pptx, LibreOffice | building and checking the pitch deck | MIT, MPL-2.0 |
+| Playwright, FFmpeg | recording and editing the demo video | Apache-2.0, LGPL/GPL |
+| Kokoro-82M (via kokoro-onnx), espeak-ng | demo-video narration voice | Apache-2.0, MIT, GPL-3.0 |
+
+## AI disclosure
+
+- **Development:** an AI coding assistant (Claude, by Anthropic) was used throughout the sprint, under the team's direction. It helped write and debug code, analyse the data and documents, draft the README, one-pager, deck text and video script, and research public sources.
+- **Checks:** every number was checked against the code's output or a cited source, and the validation can be re-run with one command.
+- **Demo video narration:** a synthetic voice generated locally with the open-source Kokoro text-to-speech model.
+- **The running app uses no AI model or LLM API.** Forecasts come from a statistical model fitted to public data, and memos and explanations are deterministic templates filled from the model's numbers.
+
+## Built during the sprint
+
+All code, data processing and documents were created during the 48-hour sprint (30 Oct – 1 Nov 2026); the git history starts after the sprint began. No prior work.
+
+**Team Lodestar:** Tushar Agarwal (product, data and engineering).
+
+## License
+
+Code: [MIT](LICENSE). Each dataset keeps its own licence (see the data table above).
