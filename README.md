@@ -63,6 +63,20 @@ Reproduce with `python scripts/validate_drc.py`. It writes `data/derived/validat
   - 3 are near the grid.
 - **Lodestar pays for itself.** A forecast takes 0.76 CPU-seconds (about $0.00001) and 6 KB. Break-even is about 200 paid reports a year: 3.3% of the 6,116 sites AMDA members plan (team and hosting costs are assumptions). A $300 report is 0.05% of an average mini-grid's cost.
 
+## Business model canvas
+
+| Block | Lodestar |
+|---|---|
+| **Customer segments** | Mini-grid developers (AMDA members plan 6,116 sites); lenders and DFIs; RBF programmes and electrification agencies (Nigeria's DARES targets 1,000+ mini-grids). Households and businesses benefit but don't pay. |
+| **Value propositions** | **Developers:** a bankable P90/P50/P10 forecast and growth curve before building, with no survey. **Lenders:** debt sized on P90, a stress test across 20,000 scenarios, and a memo. **RBF programmes:** screen many villages at once (mini-grid, solar home systems or grid). **Communities:** right-sized systems, at about half the cost of power of oversizing. |
+| **Channels** | Web app and API with HOMER export; USSD/SMS for field officers; industry bodies; onboarding through RBF programmes; DTECH 2027 |
+| **Customer relationships** | Free forecast, then a paid report (self-serve); Demand Bureau give-to-get membership; a public track record |
+| **Revenue streams** (proposed) | Free single-site forecasts; a $300 Bankable Demand Report per site; $12k/yr portfolio screening. Break-even is about 200 reports a year. |
+| **Key resources** | Open-data pipeline and calibrated model; metered validation; forecast ledger; Demand Bureau data |
+| **Key activities** | Forecasts, reports and screens; quarterly re-calibration; public validation and scoring |
+| **Key partners** (proposed, none engaged yet) | Mini-grid operators; a neutral data steward (e.g. AMDA); RBF programmes (e.g. Nigeria REA/DARES); open-data providers |
+| **Cost structure** | Data $0; 0.76 CPU-s per forecast (measured); hosting about $300/yr; team about $60k/yr (assumption). Marginal cost per extra site is close to zero. |
+
 ## Field access: SMS, USSD and offline
 
 - `GET /api/sms?site=…` or `?lat=…&lon=…` returns a single 160-character forecast text.

@@ -77,29 +77,58 @@ img { display: block; }
 </section>
 
 <!-- 4 -->
-<section class="s">
-  <div class="kick">Feasibility, cost &amp; who pays</div>
-  <h2>A trust layer the sector can afford, and that improves as it's used.</h2>
-  <div class="grid" style="grid-template-columns:1fr 1fr 1fr;gap:16px">
-    <div class="card"><h3>Who pays</h3><ul class="small">
-      <li><b>Free</b> single-site forecasts (adoption)</li>
-      <li><b>Bankable Demand Report</b> per site for developers and lenders (proposed ~$300, under 0.1% of a ~$585k mini-grid)</li>
-      <li><b>Portfolio screening</b> subscriptions for DFIs and RBF programmes</li>
-      <li>Households pay nothing; each report checks their bill against the AMDA ARPU benchmark</li></ul>
-      <p class="xs muted"><b>Measured:</b> 0.76 CPU-s and 6 KB per forecast. <b>Break-even:</b> ~200 paid reports/yr, 3.3% of the 6,116 sites AMDA members plan (team cost assumed $60k/yr). Open data, no API keys, runs on a laptop.</p></div>
-    <div class="card"><h3>Demand Bureau: safe meter-data sharing</h3><ul class="small">
-      <li><b>Give-to-get</b>, borrowed from credit bureaus: share site-month aggregates, get benchmarks and narrower bands</li>
-      <li>No customer data; release only cells with ≥3 sites from ≥2 operators</li>
-      <li>Federated option: share fitted parameters, not series</li>
-      <li>Neutral steward (e.g. AMDA); a pooling clause in RBF grants seeds it</li></ul></div>
-    <div class="card"><h3>Forecast ledger</h3><p class="small">Borrowed from weather-forecast verification and clinical-trial registries: every forecast is <b>hashed and timestamped before the site is built</b>, then scored publicly when meters report. Trust earned in the open, not claimed.</p></div>
+<section class="s" style="padding-top:0.35in">
+  <div class="kick">Business model · who pays, and how it pays for itself</div>
+  <h2 style="font-size:22pt;margin-bottom:10px">A trust layer the sector can afford, and that improves as it's used.</h2>
+  <style>
+    .bmc { display:grid; grid-template-columns:repeat(5,1fr); grid-template-rows:auto auto auto; gap:8px; font-size:9.6pt; line-height:1.3; }
+    .bmc .c { background:#fff; border:1px solid #dfe5e8; border-radius:5px; padding:7px 9px; }
+    .bmc .c h4 { margin:0 0 3px; font:700 10.5pt Georgia,serif; color:#c4552d; }
+    .bmc ul { margin:0; padding-left:14px; } .bmc li { margin:1px 0; }
+    .bmc .tall { grid-row: span 2; } .bmc .wide { grid-column: span 5; }
+    .bmc .half { grid-column: span 2; } .bmc .half3 { grid-column: span 3; }
+    .bmc .pr { color:#6a7b85; font-size:8.4pt; }
+  </style>
+  <div class="bmc">
+    <div class="c tall"><h4>Key partners</h4><ul>
+      <li>Mini-grid operators: meter data via the Demand Bureau</li>
+      <li>A neutral data steward (e.g. AMDA, which already benchmarks members)</li>
+      <li>RBF programmes and rural electrification agencies (e.g. Nigeria REA / DARES)</li>
+      <li>Open-data providers: building footprints, OpenStreetMap, NASA POWER, GridFinder</li></ul>
+      <p class="pr">Proposed; none engaged yet.</p></div>
+    <div class="c"><h4>Key activities</h4><ul>
+      <li>Forecasts, lender reports, portfolio screens</li>
+      <li>Quarterly re-calibration on Bureau data</li>
+      <li>Public validation and scoring (ledger)</li></ul></div>
+    <div class="c tall"><h4>Value propositions</h4><ul>
+      <li><b>Developers:</b> a bankable P90/P50/P10 forecast and growth curve <i>before</i> building, no survey needed</li>
+      <li><b>Lenders:</b> debt sized on P90; stress test across 20,000 scenarios; one-click memo</li>
+      <li><b>RBF programmes:</b> screen hundreds of villages: mini-grid, solar home systems, or grid</li>
+      <li><b>Communities:</b> right-sized systems: −49% cost of power vs oversizing</li>
+      <li>Validated on real meters; open data; explains itself</li></ul></div>
+    <div class="c"><h4>Customer relationships</h4><ul>
+      <li>Free forecast → paid report (self-serve)</li>
+      <li><b>Demand Bureau</b>: give-to-get, like a credit bureau; site-month aggregates only, published when ≥3 sites from ≥2 operators pool</li>
+      <li>Public track record builds trust</li></ul></div>
+    <div class="c tall"><h4>Customer segments</h4><ul>
+      <li><b>Mini-grid developers</b>: AMDA members plan 6,116 sites</li>
+      <li><b>Lenders and DFIs</b> financing them</li>
+      <li><b>RBF programmes / agencies</b>: Nigeria's DARES targets 1,000+ mini-grids</li>
+      <li><b>Beneficiaries, not payers:</b> households and businesses in 217,000 needed mini-grids</li></ul></div>
+    <div class="c"><h4>Key resources</h4><ul>
+      <li>Open-data pipeline + calibrated model</li>
+      <li>Metered validation; forecast ledger</li>
+      <li>Bureau data (grows with use)</li></ul></div>
+    <div class="c"><h4>Channels</h4><ul>
+      <li>Web app + API, HOMER export</li>
+      <li>USSD / SMS for field officers</li>
+      <li>Industry bodies, RBF onboarding, DTECH 2027</li></ul></div>
+    <div class="c half3"><h4>Cost structure</h4>
+      Data and licences <b>$0</b> · compute <b>0.76 CPU-s per forecast</b> (≈$0.00001, measured) · hosting ≈$300/yr · team ≈$60k/yr (two analyst-engineers, Nairobi or Lagos; assumption) · marginal cost per extra site ≈ 0, so cost per forecast falls with scale.</div>
+    <div class="c half"><h4>Revenue streams <span class="pr">(proposed prices)</span></h4>
+      Free single-site forecasts · <b>$300 Bankable Demand Report</b> per site (0.05% of a $585k mini-grid) · <b>$12k/yr portfolio screening</b> for RBF programmes and DFIs. <b>Break-even ≈ 200 reports/yr</b>, or 3 subscriptions + 81 reports: 3.3% of AMDA members' pipeline.</div>
   </div>
-  <div class="card" style="margin-top:16px"><h3>6–18 months</h3>
-    <div class="grid small" style="grid-template-columns:repeat(4,1fr);gap:14px">
-      <div><b>M0–3</b><br>Backtest 2–3 operators' historical meters under the Bureau protocol</div>
-      <div><b>M3–6</b><br>Pre-register forecasts for 10 sites before commissioning</div>
-      <div><b>M6–12</b><br>Score them publicly; integrate with one RBF programme's site validation</div>
-      <div><b>M12–18</b><br>5 countries; paid reports to lenders · DTECH 2027 MVP milestone</div></div></div>
+  <div class="card" style="margin-top:8px;padding:8px 12px;font-size:10pt"><b>6–18 months:</b> M0–3 backtest 2–3 operators' meters under the Bureau protocol · M3–6 pre-register forecasts for 10 sites · M6–12 score them publicly; pilot with one RBF programme · M12–18 five countries, paid reports to lenders (DTECH 2027 MVP milestone).</div>
   <div class="foot"><span>Biggest risk: thin metered data. Tested early by the M0–3 operator backtest; mitigated by the Bureau and the ledger.</span><span>4 / 5</span></div>
 </section>
 

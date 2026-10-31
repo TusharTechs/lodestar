@@ -98,3 +98,10 @@ pre { padding: 10px; overflow-x: auto; }
   .brand .tag { display: none; }
   .tab.on { height: auto; min-height: calc(100% - 52px); }
 }
+
+.bmc { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; font-size: 12.5px; line-height: 1.35; }
+.bmc .c { background: #faf9f6; border: 1px solid var(--line); border-radius: 5px; padding: 8px 10px; }
+.bmc .c h4 { margin: 0 0 4px; font: 700 13px "Source Serif 4", Georgia, serif; color: var(--accent); }
+.bmc ul { margin: 0; padding-left: 15px; } .bmc li { margin: 2px 0; }
+.bmc .tall { grid-row: span 2; } .bmc .half { grid-column: span 2; } .bmc .half3 { grid-column: span 3; }
+@media (max-width: 900px) { .bmc { grid-template-columns: 1fr 1fr; } .bmc .tall { grid-row: auto; } .bmc .half, .bmc .half3 { grid-column: span 2; } }
