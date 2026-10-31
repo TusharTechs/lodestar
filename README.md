@@ -13,8 +13,8 @@ What P90 energy-yield reports did for solar project finance, Lodestar does for m
 | | |
 |---|---|
 | **Live app** | **https://lodestar-utfz.onrender.com** (free hosting: the first visit after idle can take 30–60 s to wake up) |
-| **Demo video (4:17)** | **https://youtu.be/lSxJWJSjBLc** |
-| Pitch video | *link added at submission* |
+| **Demo video (4:28)** | **https://youtu.be/KkYp2ROyTcs** |
+| **Pitch video (3:05)** | **https://youtu.be/-O4Ev7trVAk** |
 | Pitch deck (organisers' template, 5 slides) | [`docs/Lodestar_Brief03_Pitch.pdf`](docs/Lodestar_Brief03_Pitch.pdf) · editable [`.pptx`](docs/Lodestar_Brief03_Pitch.pptx) |
 | One-page summary | [`docs/lodestar-one-pager.pdf`](docs/lodestar-one-pager.pdf) |
 | A site forecast tested against real meters | https://lodestar-utfz.onrender.com/#explore/cd-nk-mutwanga |
@@ -272,13 +272,13 @@ render.yaml            one-click deploy on Render
 | Inter, Source Serif 4 | typography | SIL OFL 1.1 |
 | python-pptx, LibreOffice | building and checking the pitch deck | MIT, MPL-2.0 |
 | Playwright, FFmpeg | recording and editing the demo video | Apache-2.0, LGPL/GPL |
-| Kokoro-82M (via kokoro-onnx), espeak-ng | demo-video narration voice | Apache-2.0, MIT, GPL-3.0 |
+| Kokoro-82M (via kokoro-onnx), espeak-ng | demo and pitch video narration voice | Apache-2.0, MIT, GPL-3.0 |
 
 ## AI disclosure
 
 - **Development:** an AI coding assistant (Claude, by Anthropic) was used throughout the sprint, under the team's direction. It helped write and debug code, analyse the data and documents, draft the README, one-pager, deck text and video script, and research public sources.
 - **Checks:** every number was checked against the code's output or a cited source, and the validation can be re-run with one command.
-- **Demo video narration:** a synthetic voice generated locally with the open-source Kokoro text-to-speech model.
+- **Video narration (demo and pitch):** a synthetic voice generated locally with the open-source Kokoro text-to-speech model. The on-camera intro is the founder.
 - **The running app uses no AI model or LLM API.** Forecasts come from a statistical model fitted to public data, and memos and explanations are deterministic templates filled from the model's numbers.
 
 ## Built during the sprint
