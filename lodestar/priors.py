@@ -28,9 +28,13 @@ SIGMA_SEVENFOLD = float(np.log(7) / (2 * 1.2816))
 # is poorly estimated, so it is floored. Set so that leave-one-site-out P90-P10
 # coverage on the village-scale sites is ~80% (calibration, disclosed in the report).
 FLOORS = {"R": 0.60, "k": 0.60, "t0": 15.0, "Q": 0.50, "a": 0.25, "tau": 0.80}
-# Observation noise (log scale) used when updating on metered months, and the
-# month-to-month noise added when scoring individual metered months.
-OBS_SIGMA = {"conn": 0.30, "q": 0.35}
+# Observation noise (log scale) used when updating on metered months. Monthly residuals
+# around the fitted curves are strongly autocorrelated in the DRC panel (lag-1 rho 0.93 for
+# connections, 0.66 for kWh per connection), so n consecutive months carry far less than n
+# independent pieces of evidence. The per-month noise (0.30 / 0.35) is inflated by the AR(1)
+# effective-sample-size factor sqrt((1+rho)/(1-rho)) = 5.3 / 2.2.
+OBS_SIGMA = {"conn": 1.60, "q": 0.77}
+# Month-to-month noise added when scoring individual metered months.
 MONTH_NOISE = 0.20
 
 

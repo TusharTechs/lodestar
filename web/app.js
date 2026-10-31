@@ -143,7 +143,7 @@ function renderReport(r, prior) {
     <div class="kpi"><div class="l">P10 · optimistic</div><div class="v">${mwh(h.p10)}</div><div class="s">exceeded with 10% probability</div></div>
     <div class="kpi"><div class="l">Peak load · P50</div><div class="v">${fmt(r.load_profile.peak_kw)} kW</div><div class="s">load factor ${pct(r.load_profile.load_factor)}</div></div>
   </div>
-  ${r.update ? `<div class="narrow"><b>Updated with ${r.update.months_used} metered months.</b> Year-3 band P90–P10: ${mwh(prior.p90)}–${mwh(prior.p10)} → <b>${mwh(h.p90)}–${mwh(h.p10)} MWh/month</b> (width ${pct(1 - (h.p10 - h.p90) / (prior.p10 - prior.p90))} narrower).</div>` : ""}
+  ${r.update ? (() => { const ch = 1 - (h.p10 / h.p90) / (prior.p10 / prior.p90); return `<div class="narrow"><b>Updated with ${r.update.months_used} metered months.</b> Year-3 band P90–P10: ${mwh(prior.p90)}–${mwh(prior.p10)} → <b>${mwh(h.p90)}–${mwh(h.p10)} MWh/month</b>; P50 ${mwh(prior.p50)} → <b>${mwh(h.p50)}</b>. ${ch > 0 ? `Relative band width ${pct(ch)} narrower.` : `The band stays wide: early months alone cannot yet tell a slow ramp from a low ceiling.`}</div>`; })() : ""}
   <div class="card"><h3>Demand growth, months 0–60 after commissioning</h3>
     <p class="lede">Monthly site energy (MWh). Dark band P75–P25, light band P90–P10.${isDrc ? ' <b>Black line: actual metered demand</b>, which this forecast did not see.' : ""}</p>
     <div class="chart"><canvas id="fan"></canvas></div>
@@ -282,21 +282,21 @@ async function renderValidation() {
     </div>
     <img src="/docs-static/validation/drc_end_to_end.png" alt="Open-data-only forecasts vs metered actuals for Lubero and Mutwanga" style="width:100%;margin-top:10px;border:1px solid var(--line);border-radius:4px">
     <p class="src">Reference points, measured differently: survey-based estimates miss individual customers by 65% (CrossBoundary Innovation Lab); site-level machine learning trained on many metered sites reached 37% per site (Allee et al., Tanzania). Two sites is method validation, not proof.</p></div>
-  <div class="card"><h3>Ablation: census customer counts instead of footprints, without anchors and drivers</h3>
+  <div class="card"><h3>Learning from shared meters, and an ablation with census counts</h3>
     <div class="grid4">
       <div class="kpi"><div class="l">Village site-years inside band</div><div class="v">${pct(s.day0_annual_coverage)}</div><div class="s">${s.n_site_years} site-years</div></div>
       <div class="kpi"><div class="l">Months inside band</div><div class="v">${pct(s.day0_coverage)}</div><div class="s">village sites</div></div>
       <div class="kpi"><div class="l">Annual error</div><div class="v">${pct(s.day0_annual_abs_error)}</div><div class="s">years 1–3</div></div>
       <div class="kpi"><div class="l">Flat desk estimate</div><div class="v">${pct(s.baseline_flat_annual_abs_error)}</div><div class="s">census × benchmark kWh, no range</div></div>
     </div>
-    <p class="lede" style="margin-top:10px">Left: day 0, no site data. Middle and right: after the operator shares 6 or 12 metered months (Demand Bureau update).</p>
+    <p class="lede" style="margin-top:10px">All three sites. Left: day 0, no site meter data (villages: open data only; Goma: census). Middle and right: after the operator shares 6 or 12 metered months (Demand Bureau update).</p>
     <img src="/docs-static/validation/drc_backtest.png" alt="Backtest charts for Goma, Lubero and Mutwanga" style="width:100%;border:1px solid var(--line);border-radius:4px"></div>
   <div class="card"><h3>Per site</h3><table class="t"><tr><th>Site</th><th class="n">Months</th><th class="n">Day-0 monthly error</th><th class="n">Day-0 monthly coverage</th><th>Day-0 annual energy error</th><th class="n">After 6 mo: model / persistence</th><th class="n">After 12 mo: model / persistence</th></tr>${siteRows}</table></div>
   <div class="card"><h3>What this does and does not show</h3>
     <ul>
       <li><b>The range is calibrated:</b> before a site is built, Lodestar's P90–P10 band contained the metered annual energy in ${pct(E.annual_coverage)} of village site-years using open data alone. This is the property a lender needs from a P90.</li>
       <li><b>The point forecast is close to, not clearly better than, a simple benchmark.</b> A flat desk estimate that needs a census (which a developer rarely has) had ${pct(s.baseline_flat_annual_abs_error)} annual error on these sites against ${pct(E.annual_abs_error)} for open-data Lodestar. It gives no range and missed urban Goma by ${pct(R.sites.Goma.baseline_flat_wape)}. We report it rather than hide it.</li>
-      <li><b>Learning from meters is limited by shocks.</b> After 6 months of data, error on the village sites changes from ${pct(s.day0_wape)} to ${pct(s.after_6m_wape)} (persistence ${pct(s.persistence_after_6m_wape)}). After 12 months, regime shifts (Mutwanga's conflict collapse, Lubero's late uptake surge) make simple persistence the better predictor (${pct(s.persistence_after_12m_wape)} vs ${pct(s.after_12m_wape)}). The fix is more sites, which is what the Demand Bureau is for.</li>
+      <li><b>Learning from meters helps early, and shocks still win.</b> When an operator shares its first 6 metered months, error on the following months falls from ${pct(E.wape)} to ${pct(E.after_6m_wape)} with ${pct(E.after_6m_coverage)} band coverage, beating "carry the last month forward" (${pct(E.persistence_after_6m_wape)}). After 12 months, Mutwanga's conflict-driven collapse makes persistence better (${pct(E.persistence_after_12m_wape)} vs ${pct(E.after_12m_wape)}). Consecutive metered months are strongly autocorrelated, so the update discounts them by the measured effective sample size instead of treating each month as independent evidence.</li>
       <li><b>Three sites is method validation, not proof.</b> Every forecast Lodestar issues is pre-registered in the <a href="#ledger" onclick="showTab('ledger')">forecast ledger</a> and scored when meters report.</li>
     </ul>
     <p class="src">All sites (including urban Goma): day-0 annual error ${pct(a.day0_annual_abs_error)}, coverage ${pct(a.day0_annual_coverage)}. Full numbers: <a href="/api/validation" target="_blank">/api/validation</a>. Reproduce: <code>python scripts/validate_drc.py</code>.</p></div>`;

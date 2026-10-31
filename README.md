@@ -36,7 +36,7 @@ What it does **not** show, stated plainly:
 
 - **Two village sites is method validation, not proof.** Every forecast Lodestar issues is pre-registered in a public ledger (`data/ledger/forecasts.jsonl`) so it can be scored when meters report.
 - **A flat desk estimate that needs a census** had 36% annual error on the same two sites. It gives no range, and it missed the urban Goma network by 88%. We report it rather than hide it.
-- **Learning from a site's own meters** helps after 6 months (error 53% → 49%). By 12 months, regime shocks dominate: Mutwanga's consumption collapsed after an armed-conflict shock, and Lubero's uptake surged late. At that point simple persistence wins (31% vs 118%). More sites in the Demand Bureau is the fix.
+- **Learning from a site's own meters (Demand Bureau update)** helps early. Sharing the first 6 metered months cuts error on the following months from 40% to 35%, with 77% band coverage. That beats carrying the last month forward (52%). After 12 months, Mutwanga's conflict-driven consumption collapse makes persistence better (31% vs 47%). Consecutive months are strongly autocorrelated (lag-1 ρ = 0.93 for connections, 0.66 for kWh per connection), so the update discounts them by the effective sample size.
 - **Goma** is a city network of about 16,700 potential customers, outside the village scope. It is reported for transparency.
 
 Published reference points, measured differently: survey-based estimates miss individual customers by 65% ([CrossBoundary Innovation Lab](https://crossboundary.com/innovation-insight-machine-learning-to-predict-mini-grid-consumption/)). Site-level ML trained on many metered sites reached 37% per site (Allee et al., Tanzania).

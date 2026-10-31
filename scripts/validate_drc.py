@@ -156,6 +156,17 @@ def main():
             "ratios_from": other,
         }
         paths[name]["end_to_end"] = {k: v.tolist() for k, v in bands_at(de, t).items()}
+        out["end_to_end"][name]["learning"] = {}
+        for k in LEARN_MONTHS:
+            n = int((t <= k).sum())
+            obs = {"conn.household": panel.conn_hh[:n], "conn.sme": panel.conn_sme[:n],
+                   "q.household": panel.kwh_hh[:n], "q.sme": panel.kwh_sme[:n]}
+            dk, _ = condition(de, obs, t[:n], sigma=OBS_SIGMA)
+            mm = (t > k) & (actual > 0)
+            out["end_to_end"][name]["learning"][str(k)] = {
+                **metrics(t, actual, bands_at(dk, t), k, at(dk, t)),
+                "baseline_persistence_wape": float(np.sum(np.abs(actual[n - 1] - actual[mm])) / np.sum(actual[mm]))}
+            paths[name][f"e2e_after_{k}"] = {kk: v.tolist() for kk, v in bands_at(dk, t).items()}
     e2e = out["end_to_end"]
     out["summary"]["end_to_end_village"] = {
         "annual_abs_error": float(np.mean([abs(y["error"]) for s in e2e.values() for y in s["years"]])),
@@ -163,6 +174,9 @@ def main():
         "monthly_coverage": float(np.mean([s["coverage_p90_p10"] for s in e2e.values()])),
         "wape": float(np.mean([s["wape"] for s in e2e.values()])),
         "n_site_years": int(sum(len(s["years"]) for s in e2e.values())),
+        **{f"after_{k}m_wape": float(np.mean([s["learning"][str(k)]["wape"] for s in e2e.values()])) for k in LEARN_MONTHS},
+        **{f"after_{k}m_coverage": float(np.mean([s["learning"][str(k)]["coverage_p90_p10"] for s in e2e.values()])) for k in LEARN_MONTHS},
+        **{f"persistence_after_{k}m_wape": float(np.mean([s["learning"][str(k)]["baseline_persistence_wape"] for s in e2e.values()])) for k in LEARN_MONTHS},
     }
 
     clients = load_clients()
@@ -212,18 +226,20 @@ def plot(paths):
     import matplotlib.pyplot as plt
 
     FIG_DIR.mkdir(parents=True, exist_ok=True)
-    cols = [("day0", "Day 0 · no site meter data"), ("after_6", "After 6 metered months"), ("after_12", "After 12 metered months")]
+    cols = [("day0", "Day 0 · open data only"), ("after_6", "After 6 metered months"), ("after_12", "After 12 metered months")]
     fig, axes = plt.subplots(len(paths), len(cols), figsize=(13, 3.1 * len(paths)))
     for i, (name, p) in enumerate(paths.items()):
         t = np.array(p["months"])
         for j, (k, title) in enumerate(cols):
             ax = axes[i, j]
-            b = p[k]
+            b = p.get({"day0": "end_to_end", "after_6": "e2e_after_6", "after_12": "e2e_after_12"}[k], p[k])
             ax.fill_between(t, np.array(b["p90"]) / 1e3, np.array(b["p10"]) / 1e3, color="#f4a261", alpha=0.35, label="P90–P10 band")
             ax.plot(t, np.array(b["p50"]) / 1e3, color="#e76f51", lw=1.8, label="P50 forecast")
             ax.plot(t, np.array(p["actual"]) / 1e3, color="#264653", lw=1.6, label="Metered actual")
             if k != "day0":
                 ax.axvspan(0, int(k.split("_")[1]), color="#2a9d8f", alpha=0.12, label="Months used")
+            if k == "day0" and "end_to_end" not in p:
+                title = "Day 0 · census + benchmarks (urban, out of scope)"
             ax.set_title(f"{name} — {title}", fontsize=9)
             ax.set_ylabel("MWh / month", fontsize=8)
             ax.grid(alpha=0.25)
