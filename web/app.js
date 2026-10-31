@@ -291,7 +291,7 @@ async function renderValidation() {
     </div>
     <p class="lede" style="margin-top:10px">All three sites. Left: day 0, no site meter data (villages: open data only; Goma: census). Middle and right: after the operator shares 6 or 12 metered months (Demand Bureau update).</p>
     <img src="/docs-static/validation/drc_backtest.png" alt="Backtest charts for Goma, Lubero and Mutwanga" style="width:100%;border:1px solid var(--line);border-radius:4px"></div>
-  <div class="card"><h3>Per site</h3><table class="t"><tr><th>Site</th><th class="n">Months</th><th class="n">Day-0 monthly error</th><th class="n">Day-0 monthly coverage</th><th>Day-0 annual energy error</th><th class="n">After 6 mo: model / persistence</th><th class="n">After 12 mo: model / persistence</th></tr>${siteRows}</table></div>
+  <div class="card"><h3>Per site (census-count variant, all three sites)</h3><table class="t"><tr><th>Site</th><th class="n">Months</th><th class="n">Day-0 monthly error</th><th class="n">Day-0 monthly coverage</th><th>Day-0 annual energy error</th><th class="n">After 6 mo: model / persistence</th><th class="n">After 12 mo: model / persistence</th></tr>${siteRows}</table></div>
   <div class="card"><h3>What this does and does not show</h3>
     <ul>
       <li><b>The range is calibrated:</b> before a site is built, Lodestar's P90–P10 band contained the metered annual energy in ${pct(E.annual_coverage)} of village site-years using open data alone. This is the property a lender needs from a P90.</li>
