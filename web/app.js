@@ -69,7 +69,8 @@ function initMap() {
       "circle-radius": ["interpolate", ["linear"], ["zoom"], 3, 11, 10, 16], "circle-color": "rgba(0,0,0,0)",
       "circle-stroke-color": C.gold, "circle-stroke-width": 3 } });
     map.addSource("geo", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
-    map.addLayer({ id: "bld", type: "fill", source: "geo", filter: ["==", ["geometry-type"], "Polygon"], paint: {
+    map.addLayer({ id: "ring", type: "line", source: "geo", filter: ["==", ["get", "cls"], "ring"], paint: { "line-color": C.gold, "line-width": 2.5, "line-dasharray": [2, 1.5] } });
+    map.addLayer({ id: "bld", type: "fill", source: "geo", filter: ["all", ["==", ["geometry-type"], "Polygon"], ["!=", ["get", "cls"], "ring"]], paint: {
       "fill-color": ["match", ["get", "cls"], "large", "#ffb703", "residential", "#48cae4", "#ade8f4"], "fill-opacity": .9, "fill-outline-color": "#023e8a" } });
     map.addLayer({ id: "poi", type: "circle", source: "geo", filter: ["==", ["geometry-type"], "Point"], paint: {
       "circle-radius": 6, "circle-color": ["match", ["get", "poi_type"], "mill", "#e63946", "market", C.gold, "school", "#8e7cc3", "health", "#2a9d8f", "#ffffff"],
@@ -100,6 +101,7 @@ function fitAll() {
 
 function overview() {
   current = null; currentReport = null;
+  if ($("#explore").classList.contains("focus")) { $("#explore").classList.remove("focus"); if (mapReady) setTimeout(() => map.resize(), 260); }
   document.querySelectorAll("#sitelist .it").forEach(el => el.classList.remove("on"));
   if (mapReady) { map.setFilter("sel", ["==", ["get", "site_id"], ""]); map.getSource("geo").setData({ type: "FeatureCollection", features: [] }); fitAll(); }
   renderLanding();
@@ -135,16 +137,33 @@ function askForecast(ll) {
   setTimeout(() => { const b = document.getElementById("goPt"); if (b) b.onclick = () => { pop.remove(); runPoint(ll); }; }, 0);
 }
 
+const SOURCES = [["buildings", "Building footprints", "VIDA satellite-derived buildings"], ["osm", "Schools, clinics, mills, roads", "OpenStreetMap"],
+  ["grid", "Distance to the grid", "GridFinder"], ["solar", "Solar resource", "NASA POWER"], ["forecast", "Forecast", "20,000 growth scenarios"]];
+
+function showPoint(ll) {
+  if (!mapReady) return;
+  map.flyTo({ center: [ll.lng, ll.lat], zoom: 13.4, speed: 1.8 });
+  const ring = Array.from({ length: 65 }, (_, i) => { const a = i / 64 * 2 * Math.PI; return [ll.lng + 1500 / (111320 * Math.cos(ll.lat * Math.PI / 180)) * Math.cos(a), ll.lat + 1500 / 111320 * Math.sin(a)]; });
+  map.getSource("geo").setData({ type: "FeatureCollection", features: [{ type: "Feature", properties: { cls: "ring" }, geometry: { type: "Polygon", coordinates: [ring] } }] });
+}
+
 async function runPoint(ll) {
   const r = await fetch("/api/forecast", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ lat: ll.lat, lon: ll.lng, radius_m: 1500 }) });
   if (!r.ok) { alert(await r.text()); return; }
   const { job } = await r.json();
-  $("#report").innerHTML = `<div class="empty"><h2><span class="spinner"></span>Forecasting ${ll.lat.toFixed(4)}, ${ll.lng.toFixed(4)}</h2><p id="jobstage" class="muted">Starting…</p></div>`;
+  current = null; showPoint(ll);
+  $("#report").innerHTML = `<div class="empty"><h2>Forecasting ${ll.lat.toFixed(4)}, ${ll.lng.toFixed(4)}</h2>
+    <p class="muted">A new location is built from open data, all sources fetched at once. Usually 10–20 seconds, most of it reading satellite building footprints.</p>
+    <ul class="steps" id="jobsteps">${SOURCES.map(([k, t, src]) => `<li data-k="${k}"><i></i><b>${t}</b> <span class="src">${src}</span><em></em></li>`).join("")}</ul>
+    <p class="src" id="jobtime">0 s</p></div>`;
+  const t0 = Date.now(), tick = setInterval(() => { const el = $("#jobtime"); if (!el) return clearInterval(tick); el.textContent = `${Math.round((Date.now() - t0) / 1000)} s`; }, 500);
   const poll = async () => {
-    const j = await get("/api/jobs/" + job);
-    if (j.status === "running") { const el = $("#jobstage"); if (el) el.textContent = `${j.stage} · ${j.elapsed_s}s`; setTimeout(poll, 2500); return; }
+    let j; try { j = await get("/api/jobs/" + job); } catch (e) { setTimeout(poll, 1500); return; }
+    document.querySelectorAll("#jobsteps li").forEach(li => { const st = (j.sources || {})[li.dataset.k]; li.className = st || ""; li.querySelector("em").textContent = st === "failed" ? "unavailable, shown as a warning" : ""; });
+    if (j.status === "running") { setTimeout(poll, 1000); return; }
+    clearInterval(tick);
     if (j.status === "error") { $("#report").innerHTML = `<div class="empty"><h2>Could not forecast here</h2><div class="flag">${esc(j.error)}</div><p class="muted">Lodestar never fills a gap with made-up data. Try a location with mapped buildings.</p></div>`; return; }
-    sites.push({ site_id: j.site_id, name: j.report.site.name, country: j.report.site.country, lat: ll.lat, lon: ll.lng });
+    if (!sites.some(s => s.site_id === j.site_id)) sites.push({ site_id: j.site_id, name: j.report.site.name, country: j.report.site.country, lat: ll.lat, lon: ll.lng });
     openSite(j.site_id, j.report);
   };
   poll();
@@ -211,6 +230,7 @@ function renderReport(r, prior) {
   <div class="rhead"><div><h2>${esc(r.site.name)}</h2>
     <div class="sub">${esc(r.site.admin1 || "")} · ${esc(COUNTRY[r.site.country] || r.site.country || "")} · ${r.site.lat.toFixed(4)}, ${r.site.lon.toFixed(4)} · ${esc(r.region_label)} benchmarks</div></div>
     <div class="actions">
+      <button class="btn" id="focusBtn" title="Hide the map to give the report the full width">${document.getElementById("explore").classList.contains("focus") ? "Show map" : "⤢ Wider report"}</button>
       <a class="btn primary" href="/api/sites/${r.site.site_id}/memo" target="_blank">Lender memo (PDF)</a>
       <a class="btn" href="/api/sites/${r.site.site_id}/load-8760.csv">8760 load for HOMER</a>
       <a class="btn" href="/api/sites/${r.site.site_id}/pack.zip" title="Memo, report, load file and SMS summary for use without internet">Offline pack</a>
@@ -223,6 +243,7 @@ function renderReport(r, prior) {
     <div class="kpi"><div class="l">Peak load · P50</div><div class="v">${fmt(r.load_profile.peak_kw)} kW</div><div class="s">load factor ${pct(r.load_profile.load_factor)}</div></div>
   </div>
   ${r.update ? (() => { const ch = 1 - (h.p10 / h.p90) / (prior.p10 / prior.p90); return `<div class="narrow"><b>Updated with ${r.update.months_used} metered months.</b> Year-3 band P90–P10: ${mwh(prior.p90)}–${mwh(prior.p10)} → <b>${mwh(h.p90)}–${mwh(h.p10)} MWh/month</b>; P50 ${mwh(prior.p50)} → <b>${mwh(h.p50)}</b>. ${ch > 0 ? `Relative band width ${pct(ch)} narrower.` : `The band stays wide: early months alone cannot yet tell a slow ramp from a low ceiling.`}</div>`; })() : ""}
+  ${r.calibration && prior ? (() => { const c = r.calibration, B = c.benchmark, seg = Object.entries(c.segments).map(([k, a]) => `${k === "household" ? "households" : "businesses"} ${a.Q.toFixed(1)} kWh/month (benchmark ${B[k]})`).join(", "); return `<div class="narrow"><b>Calibrated on your similar site.</b> Consumption per customer from your meters: ${seg}. Year-3 P50 ${mwh(prior.p50)} → <b>${mwh(h.p50)} MWh/month</b>; band ${mwh(prior.p90)}–${mwh(prior.p10)} → <b>${mwh(h.p90)}–${mwh(h.p10)}</b>.</div>`; })() : ""}
   ${r.basis ? `<div class="card"><h3>How this forecast was made</h3>
     <ol class="small" style="margin:6px 0 4px;padding-left:20px">${r.basis.steps.map(s => `<li><b>${esc(s.title)}.</b> ${esc(s.text)}</li>`).join("")}</ol>
     <details class="small"><summary style="cursor:pointer">Inputs, sources and how current they are</summary>
@@ -233,8 +254,17 @@ function renderReport(r, prior) {
     <p class="lede">Monthly site energy (MWh). Dark band P75–P25, light band P90–P10.${isDrc ? ' <b>Black line: actual metered demand</b>, which this forecast did not see.' : ""}</p>
     <div class="chart"><canvas id="fan"></canvas></div>
     ${isDrc && !r.update ? `<div style="margin-top:8px"><button class="btn primary" id="bureauBtn">Demand Bureau: share the first 6 metered months →</button> <span class="src">re-weights the forecast with the operator's own meters</span></div>` : ""}
-    ${r.update && isDrc ? `<div style="margin-top:8px"><button class="btn" id="resetBtn">← Back to the day-0 forecast</button></div>` : ""}
+    ${r.update || r.calibration ? `<div style="margin-top:8px"><button class="btn" id="resetBtn">← Back to the open-data forecast</button></div>` : ""}
   </div>
+  ${r.update || r.calibration ? "" : `<div class="card owndata"><h3>Have your own meter data? Use it</h3>
+    <p class="lede">Operators hold meter data that is not public. Add a CSV of monthly site totals; it is processed in memory and not stored.</p>
+    <div class="dmodes">
+      <label><input type="radio" name="dmode" value="analog" checked><span><b>From a similar site I run</b> (another village or country). Its consumption per customer replaces the regional benchmark.</span></label>
+      <label><input type="radio" name="dmode" value="own"><span><b>From this site</b>, if it is already running. Its metered months re-weight the forecast and narrow the band.</span></label>
+    </div>
+    <p style="margin:10px 0 4px"><input type="file" id="dfile" accept=".csv"> <button class="btn primary" id="dgo">Update forecast</button></p>
+    <p class="src">One row per month: <code>months_since_cod, conn_household, conn_sme, kwh_per_household, kwh_per_sme</code> (kWh per connection per month; at least 6 months). <a href="/api/bureau-template.csv">Blank template</a> · real examples from DR Congo meters: <a href="/api/sites/cd-nk-lubero/bureau-sample.csv?months=24">Lubero, 24 months</a>, <a href="/api/sites/cd-nk-mutwanga/bureau-sample.csv?months=24">Mutwanga, 24 months</a></p>
+    <div id="dout"></div></div>`}
   <div class="row2">
     <div class="card"><h3>Connections ramp</h3><p class="lede">Connected customers, P50. Potential: ${fmt(r.potential_customers.household)} households, ${fmt(r.potential_customers.sme)} businesses (from ${fmt(b.count)} footprints).</p><div class="chart small"><canvas id="conn"></canvas></div></div>
     <div class="card"><h3>Consumption per connection</h3><p class="lede">kWh/month per connection, P50. Appliance acquisition raises use over time.</p><div class="chart small"><canvas id="q"></canvas></div></div>
@@ -265,6 +295,8 @@ function renderReport(r, prior) {
   if (f) drawFinance(f);
   const bb = $("#bureauBtn"); if (bb) bb.onclick = () => runBureauDemo(r);
   const rb = $("#resetBtn"); if (rb) rb.onclick = () => openSite(r.site.site_id);
+  $("#focusBtn").onclick = () => setFocus(!$("#explore").classList.contains("focus"));
+  const dg = $("#dgo"); if (dg) dg.onclick = () => uploadMeters(r);
 }
 
 function drawFan(r) {
@@ -336,6 +368,24 @@ function drawFinance(f) {
     { label: "P50 demand", data: cf.p50, backgroundColor: C.accent },
     { label: "P10 demand", data: cf.p10, backgroundColor: C.band }] },
     options: { plugins: { tooltip: { callbacks: { label: c => `${c.dataset.label}: ${usd(c.raw)}` } } }, scales: { y: { ticks: { callback: v => usd(v) } } } } });
+}
+
+function setFocus(on) {
+  $("#explore").classList.toggle("focus", on);
+  try { localStorage.setItem("lodestar-focus", on ? "1" : ""); } catch (e) {}
+  const b = $("#focusBtn"); if (b) b.textContent = on ? "Show map" : "⤢ Wider report";
+  if (mapReady) setTimeout(() => map.resize(), 260);
+  Object.values(charts).forEach(c => c && c.resize && c.resize());
+}
+
+async function uploadMeters(r) {
+  const f = $("#dfile").files[0]; if (!f) { $("#dout").innerHTML = '<div class="flag">Choose a CSV file first.</div>'; return; }
+  const mode = document.querySelector('input[name="dmode"]:checked').value;
+  const fd = new FormData(); fd.append("file", f);
+  $("#dout").innerHTML = '<p class="muted"><span class="spinner"></span>Updating the forecast with your meters…</p>';
+  const res = await fetch(`/api/sites/${r.site.site_id}/bureau?mode=${mode}`, { method: "POST", body: fd });
+  if (!res.ok) { let m = await res.text(); try { m = JSON.parse(m).detail; } catch (e) {} $("#dout").innerHTML = `<div class="flag">${esc(m)}</div>`; return; }
+  const u = await res.json(); currentReport = u; renderReport(u, u.prior_headline); $("#report").scrollTop = 0;
 }
 
 async function runBureauDemo(r) {
@@ -587,6 +637,7 @@ function renderMethod() {
   el.dataset.done = 1;
 }
 
+try { if (localStorage.getItem("lodestar-focus")) $("#explore").classList.add("focus"); } catch (e) {}
 initMap();
 loadSites();
 if (!/^#explore\/./.test(location.hash)) renderLanding();

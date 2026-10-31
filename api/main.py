@@ -31,6 +31,7 @@ from lodestar import economics as ECON  # noqa: E402
 from lodestar import personas as PERS  # noqa: E402
 from lodestar import report as R  # noqa: E402
 from lodestar.drc import load_panels  # noqa: E402
+from lodestar.priors import analog_levels  # noqa: E402
 
 SITES = ROOT / "data" / "sites"
 REPORTS = SITES / "reports"
@@ -118,11 +119,39 @@ def bureau_update(site_id: str, rows: list[dict]) -> dict:
     return rep
 
 
+def analog_update(site_id: str, rows: list[dict]) -> dict:
+    """Calibrate consumption levels on a similar site the operator already meters."""
+    if not rows:
+        raise HTTPException(400, "no rows")
+    missing = [k for k in BUREAU_FIELDS if k not in rows[0]]
+    if missing:
+        raise HTTPException(400, f"missing columns: {missing}")
+    o = _observed_from_rows(rows)
+    lv = analog_levels(o["months"], {"household": o["q.household"], "sme": o["q.sme"]})
+    if not lv:
+        raise HTTPException(400, "need at least 6 months with kwh_per_household or kwh_per_sme to calibrate")
+    rep = R.build(features(site_id), analog=lv, with_waterfall=False, n=DRAWS)
+    rep["actuals"] = actuals(site_id)
+    rep["prior_headline"] = get_report(site_id)["headline"]
+    return rep
+
+
 @app.post("/api/sites/{site_id}/bureau")
-async def bureau_upload(site_id: str, file: UploadFile):
+async def bureau_upload(site_id: str, file: UploadFile, mode: str = "own"):
+    """mode=own: metered months from THIS site (re-weights the forecast).
+    mode=analog: metered months from a similar site (replaces the consumption benchmark).
+    Processed in memory; uploaded files are not stored."""
     text = (await file.read()).decode("utf-8-sig")
     rows = list(csv.DictReader(io.StringIO(text)))
+    if mode == "analog":
+        return analog_update(site_id, rows)
     return bureau_update(site_id, rows)
+
+
+@app.get("/api/bureau-template.csv")
+def bureau_template():
+    return PlainTextResponse(",".join(BUREAU_FIELDS) + "\n", media_type="text/csv",
+                             headers={"Content-Disposition": 'attachment; filename="lodestar-meter-data-template.csv"'})
 
 
 @app.get("/api/sites/{site_id}/bureau-sample.csv")
@@ -174,17 +203,33 @@ def memo(site_id: str):
 def _job(lat: float, lon: float, radius: float, jid: str):
     import features as F
     try:
-        JOBS[jid]["stage"] = "fetching building footprints, OpenStreetMap and NASA POWER"
+        JOBS[jid]["stage"] = "fetching open data"
         sid = f"pt-{lat:.4f}-{lon:.4f}".replace(".", "_")
-        feat, bg, pois = F.compute_site(lat, lon, radius, sid, f"Point {lat:.4f}, {lon:.4f}")
+        feat, bg, pois = F.compute_site(lat, lon, radius, sid, f"Point {lat:.4f}, {lon:.4f}", live=True,
+                                        progress=JOBS[jid]["sources"])
         if not feat["buildings"].get("count"):
             raise RuntimeError("no building footprints found here; " + "; ".join(feat["warnings"]))
         F.write_site(feat, bg, pois)
-        JOBS[jid]["stage"] = "running forecast"
+        JOBS[jid]["stage"] = "running forecast"; JOBS[jid]["sources"]["forecast"] = "running"
         rep = get_report(sid)
+        JOBS[jid]["sources"]["forecast"] = "done"
         JOBS[jid].update(status="done", site_id=sid, report=rep)
     except Exception as e:
         JOBS[jid].update(status="error", error=str(e))
+
+
+def _warm():
+    """Load DuckDB extensions, the building index and grid lines at startup, not on the first click."""
+    try:
+        import features as F
+        F.warm()
+    except Exception as e:  # never block startup
+        print("warm-up skipped:", e)
+
+
+@app.on_event("startup")
+def _startup():
+    threading.Thread(target=_warm, daemon=True).start()
 
 
 @app.post("/api/forecast")
@@ -195,7 +240,11 @@ async def forecast_point(req: Request):
     if not (500 <= radius <= 3000):
         raise HTTPException(400, "radius_m must be 500-3000")
     jid = uuid.uuid4().hex[:10]
-    JOBS[jid] = {"status": "running", "stage": "queued", "started": time.time()}
+    sid = f"pt-{lat:.4f}-{lon:.4f}".replace(".", "_")
+    if (REPORTS / f"{sid}.json").exists():  # already forecast on this instance: return at once
+        JOBS[jid] = {"status": "done", "site_id": sid, "report": get_report(sid), "sources": {}, "started": time.time()}
+        return {"job": jid}
+    JOBS[jid] = {"status": "running", "stage": "queued", "sources": {}, "started": time.time()}
     threading.Thread(target=_job, args=(lat, lon, radius, jid), daemon=True).start()
     return {"job": jid}
 
@@ -205,6 +254,7 @@ def job(jid: str):
     if jid not in JOBS:
         raise HTTPException(404)
     j = dict(JOBS[jid])
+    j["sources"] = dict(j.get("sources") or {})
     j["elapsed_s"] = round(time.time() - j.pop("started"), 1)
     return j
 

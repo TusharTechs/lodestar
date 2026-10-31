@@ -102,9 +102,11 @@ def basis(feat: dict, rep: dict) -> dict:
 
 
 def build(feat: dict, observed: dict | None = None, n: int = 20000, fin_overrides: dict | None = None,
-          with_waterfall: bool = True) -> dict:
+          with_waterfall: bool = True, analog: dict | None = None) -> dict:
+    """`analog`: output of priors.analog_levels() from a similar metered site the operator runs."""
     region = village.region_of(feat)
-    d = village.forecast(feat, n=n)
+    levels = {s: a["Q"] for s, a in (analog or {}).items()} or None
+    d = village.forecast(feat, n=n, levels=levels)
     update = None
     if observed:
         months = np.asarray(observed.pop("months"), float)
@@ -134,12 +136,21 @@ def build(feat: dict, observed: dict | None = None, n: int = 20000, fin_override
         "potential_customers": {s: village.build_spec(feat).potentials[s].median for s in ("household", "sme")},
         "anchors": [{"kind": a.kind, "kwh_month": a.kwh_month} for a in village.anchors_for(feat)],
         "drivers": village.drivers_for(feat),
-        "waterfall": village.waterfall(feat) if with_waterfall else None,
+        "waterfall": village.waterfall(feat) if with_waterfall and not analog else None,
         "load_profile": profile, "finance": fin, "update": update,
+        "calibration": {"source": "operator's similar metered site", "segments": analog,
+                        "benchmark": village.AMDA_ACPU[region]} if analog else None,
         "method": {"draws": n, "model_version": "lodestar-0.3",
                    "percentiles": "P90 = exceeded with 90% probability (conservative), P50 median, P10 optimistic"},
     }
     rep["basis"] = basis(feat, rep)
+    if analog:
+        seg = "; ".join(f"{a['Q']:.1f} kWh/month per {'household' if s == 'household' else 'business'} ({a['method']}, {a['months']} months)"
+                        for s, a in analog.items())
+        rep["basis"]["steps"][1] = {"title": "How much each will use", "text":
+            f"From your own metered site: {seg}. This replaces the AMDA regional benchmark for those customers; the "
+            "spread around it is the between-site spread seen in metered mini-grids, and wealth and road-access "
+            "adjustments are not applied on top, since your meters already reflect them."}
     n_conn = sum(conn_y3.values())
     avg = {"west_central": 592, "east_south": 209}[region]
     if n_conn < 100:

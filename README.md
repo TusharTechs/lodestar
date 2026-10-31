@@ -61,7 +61,8 @@ Pick any village and you get:
   - debt that stays safe on P90 demand, and covenant-breach risk if sized on P50;
   - cost of power for each sizing option;
 - **a one-click lender memo:** a deterministic template, no language model;
-- **the Demand Bureau:** an operator uploads metered site-months and the forecast re-weights, so the range tightens;
+- **any location in Nigeria, Kenya or DR Congo in about 10–20 seconds:** click the map; OpenStreetMap layers are pre-extracted, so only the building footprints are read live;
+- **your own meter data:** upload metered months from *this* site (the forecast re-weights and the range tightens) or from a *similar site you already run* in another village or country (its consumption per customer replaces the regional benchmark). Files are processed in memory, not stored;
 - **a portfolio screener:** each settlement is classified as mini-grid (bankable with an RBF grant, or needing an anchor load), solar home systems, or check grid extension;
 - **field access:** a forecast in one 160-character SMS, a USSD menu in the Africa's Talking format, and a 12 KB offline site pack.
 
@@ -71,7 +72,7 @@ Pick any village and you get:
 flowchart LR
   subgraph OPEN["Open data (no keys)"]
     B["Building footprints<br/>VIDA · Google · Microsoft · OSM"]
-    O["OpenStreetMap<br/>schools · clinics · markets · mills · roads"]
+    O["OpenStreetMap, pre-extracted<br/>schools · clinics · markets · mills · roads"]
     G["GridFinder grid lines"]
     N["NASA POWER solar"]
     R["RAMP SSA load archetypes"]
@@ -84,7 +85,7 @@ flowchart LR
   A --> V
   M -->|"growth shapes, ratios<br/>(leave-one-site-out)"| V
   V --> F["lodestar/forecast.py<br/>20,000-scenario Monte Carlo"]
-  F --> U["Bayesian update<br/>(Demand Bureau meters)"]
+  F --> U["Your meter data<br/>Bayesian update · similar-site calibration"]
   F & U --> FIN["lodestar/finance.py<br/>sizing · cash flow · stress test"]
   R --> FIN
   FIN --> REP["lodestar/report.py<br/>report · plain-language basis · ledger"]
@@ -211,6 +212,7 @@ Then open **http://localhost:8000**. Everything needed for the 20 demo villages 
 | Re-run the validation (figures + `data/derived/validation.json`) | `python scripts/validate_drc.py` |
 | Rebuild every report and the ledger | `python scripts/precompute.py --force` |
 | Add villages in a state (OSM + footprints + NASA POWER) | `python pipeline/select_sites.py --state NG:kn --max-candidates 2` |
+| Refresh the pre-extracted OSM layers (needs `pip install osmium`) | download `nigeria`, `kenya`, `congo-democratic-republic` `-latest.osm.pbf` from download.geofabrik.de/africa, then `python pipeline/osm_extract.py *.osm.pbf` |
 | Lower memory use on small hosts | set `LODESTAR_DRAWS=8000` |
 
 ### API
@@ -219,8 +221,8 @@ Then open **http://localhost:8000**. Everything needed for the 20 demo villages 
 |---|---|
 | `GET /api/sites` | demo villages and validation sites |
 | `GET /api/sites/{id}/report` | full forecast JSON, including the plain-language basis |
-| `POST /api/forecast` `{lat, lon}` | forecast any location (fetches footprints, OSM and NASA POWER live; 2–5 min) |
-| `POST /api/sites/{id}/bureau` | Demand Bureau update with a CSV of metered site-months |
+| `POST /api/forecast` `{lat, lon}` | forecast any location in NG, KE, CD (about 10–20 s; footprints read live, OSM from the pre-extracted layers) |
+| `POST /api/sites/{id}/bureau?mode=own\|analog` | your meter data: `own` re-weights with this site's metered months, `analog` calibrates on a similar site you run · blank CSV at `/api/bureau-template.csv` |
 | `GET /api/sites/{id}/memo` · `/load-8760.csv` · `/pack.zip` | lender memo · hourly load for HOMER/REopt · offline site pack |
 | `GET /api/portfolio` · `/api/personas` · `/api/economics` | screener · buyer personas · unit economics |
 | `GET /api/validation` · `/api/metrics` · `/api/ledger` | backtest · service metrics · pre-registered forecasts |
@@ -238,7 +240,8 @@ lodestar/              forecasting engine
   report.py            report assembly, plain-language basis, forecast ledger
   economics.py, personas.py   unit economics and buyer personas
   drc.py               loader for the metered DR Congo panel
-pipeline/              feature extraction (footprints, OSM, GridFinder, NASA POWER) and site selection
+pipeline/              feature extraction (footprints, OSM, GridFinder, NASA POWER), site selection,
+                       osm_extract.py: pre-extracts OSM POIs and major roads from Geofabrik files
 api/                   FastAPI app and lender-memo template
 web/                   single-page app (MapLibre GL, Chart.js), logo
 scripts/               validation, precompute, grid clipping, pitch-deck builder
@@ -253,7 +256,7 @@ render.yaml            one-click deploy on Render
 |---|---|---|
 | Metered mini-grid panel | Lunanga et al. (2026), Energy Economics, doi:10.7910/DVN/KPDREF | CC0 (the individual-level survey file is deliberately not redistributed) |
 | Building footprints | VIDA merge of Google, Microsoft and OSM Open Buildings (source.coop) | CC-BY-4.0 / ODbL |
-| Schools, clinics, markets, mills, roads | © OpenStreetMap contributors | ODbL |
+| Schools, clinics, markets, mills, roads | © OpenStreetMap contributors (Geofabrik extracts of 2026-10-31 for new locations; type and location only) | ODbL |
 | Grid lines | GridFinder, Arderne et al. (2020), Zenodo 3628142 | CC-BY-4.0 |
 | Solar resource | NASA POWER | public domain |
 | Load shapes | RAMP SSA archetypes, Stevanato (2026), doi:10.5281/zenodo.22832973 | CC-BY-4.0 |

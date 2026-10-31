@@ -16,7 +16,7 @@ import numpy as np
 
 from .drc import load_panels
 from .forecast import Anchor, LogNormal, SiteSpec, exceedance, simulate
-from .priors import AMDA_ACPU, benchmark_prior, fit_site
+from .priors import AMDA_ACPU, FLOORS, benchmark_prior, fit_site
 
 DATA = Path(__file__).resolve().parent / "data"
 REGION_OF = {"NG": "west_central", "CD": "west_central", "KE": "east_south"}
@@ -75,6 +75,7 @@ def load_shapes():
 def drivers_for(feat: dict) -> list[dict]:
     """Explainable multiplicative drivers derived from the site's features."""
     b, p, road = feat["buildings"], feat["pois"] or {}, (feat.get("road") or {}).get("dist_major_km")
+    searched = (feat.get("road") or {}).get("searched_km", 15)
     out = []
     med = b.get("median_area_m2")
     if med:
@@ -89,7 +90,7 @@ def drivers_for(feat: dict) -> list[dict]:
                         text=f"{road:.1f} km from the nearest major road: lower appliance access"))
     elif road is None:
         out.append(dict(key="remote", target="Q", factor=0.85, source="assumption",
-                        text="No major road within 15 km in OpenStreetMap: lower appliance access"))
+                        text=f"No major road within {searched:g} km in OpenStreetMap: lower appliance access"))
     return out
 
 
@@ -104,15 +105,20 @@ def anchors_for(feat: dict) -> list[Anchor]:
 
 
 def build_spec(feat: dict, use: set[str] | None = None, horizon: int = 60, fits: list | None = None,
-               hh_ratio: float = HH_PER_RES_BUILDING, sme_ratio: float = SME_PER_LARGE_BUILDING) -> SiteSpec:
+               hh_ratio: float = HH_PER_RES_BUILDING, sme_ratio: float = SME_PER_LARGE_BUILDING,
+               levels: dict | None = None) -> SiteSpec:
     """Spec for a site. `use` limits which drivers/anchors are switched on (for the waterfall).
-    `fits`, `hh_ratio`, `sme_ratio` can be overridden for leave-one-site-out validation."""
+    `fits`, `hh_ratio`, `sme_ratio` can be overridden for leave-one-site-out validation.
+    `levels` ({segment: kWh/month}) replaces the AMDA consumption benchmark with an operator's own
+    metered level from a comparable site, with the between-site spread of metered panels (FLOORS["Q"])."""
     region = REGION_OF.get(feat.get("country"), "west_central")
     if fits is None:
         ho = held_out(feat)
         fits = ho.get("fits") or drc_fits()
         hh_ratio, sme_ratio = ho.get("hh_ratio", hh_ratio), ho.get("sme_ratio", sme_ratio)
     priors = {s: benchmark_prior(fits, s, region) for s in ("household", "sme")}
+    for s, q in (levels or {}).items():
+        priors[s] = replace(priors[s], Q=LogNormal(q, FLOORS["Q"]))
     b = feat["buildings"]
     pot = {"household": max((b["n_residential"] + b["n_small"]) * hh_ratio, 5.0),
            "sme": max(b["n_large"] * sme_ratio, 1.0)}
@@ -125,6 +131,8 @@ def build_spec(feat: dict, use: set[str] | None = None, horizon: int = 60, fits:
         else:
             segs = ("household", "sme") if tgt == "Q" else (tgt.split(".")[1],)
             for s in segs:
+                if levels and s in levels:  # a metered level already reflects local wealth and access
+                    continue
                 priors[s] = replace(priors[s], Q=LogNormal(priors[s].Q.median * d["factor"], priors[s].Q.sigma))
     anchors = anchors_for(feat) if (use is None or "anchors" in use) else []
     return SiteSpec(potentials={s: LogNormal(v, POT_SIGMA) for s, v in pot.items()},
@@ -195,8 +203,8 @@ def benchmark_note(feat: dict) -> str:
             f"{a['sme']} kWh/month per business connection")
 
 
-def forecast(feat: dict, n: int = 20000, seed: int = 7):
-    return simulate(build_spec(feat), n=n, seed=seed)
+def forecast(feat: dict, n: int = 20000, seed: int = 7, levels: dict | None = None):
+    return simulate(build_spec(feat, levels=levels), n=n, seed=seed)
 
 
 __all__ = ["forecast", "build_spec", "waterfall", "hourly_profile", "year_energy", "exceedance",

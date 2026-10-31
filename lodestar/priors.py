@@ -79,3 +79,22 @@ def benchmark_prior(fits: list[dict], seg: str, region: str) -> SegmentPrior:
     sp = pooled_prior(fits, seg)
     sp.Q = LogNormal(AMDA_ACPU[region][seg], SIGMA_SEVENFOLD)
     return sp
+
+
+def analog_levels(months, kwh_per_conn: dict) -> dict:
+    """Mature consumption per connection (Q) from an operator's own metered site.
+
+    With 12+ metered months the appliance-ramp curve is fitted and its mature level used; with
+    6-11 months the median of the observed months is used, which understates the mature level
+    (conservative). Fewer than 6 usable months: the segment keeps the AMDA benchmark."""
+    t = np.asarray(months, float)
+    out = {}
+    for seg, q in kwh_per_conn.items():
+        q = np.asarray(q, float)
+        ok = np.isfinite(q) & (q > 0)
+        if ok.sum() >= 12:
+            c, _ = fit_per_conn(t[ok], q[ok], np.ones(ok.sum()))
+            out[seg] = {"Q": float(c["Q"]), "months": int(ok.sum()), "method": "fitted mature level"}
+        elif ok.sum() >= 6:
+            out[seg] = {"Q": float(np.median(q[ok])), "months": int(ok.sum()), "method": "median of observed months"}
+    return out

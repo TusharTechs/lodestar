@@ -7,6 +7,7 @@ Rule: never fabricate. Any source that fails yields null for its fields + a warn
 """
 import argparse, datetime as dt, hashlib, json, math, pathlib, re, sys, time
 import numpy as np, pandas as pd, requests
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import shapely
 from shapely.geometry import Point, LineString, box
 from pyproj import CRS, Transformer
@@ -19,7 +20,8 @@ SITES = ROOT / "data" / "sites"
 GEO = ROOT / "data" / "geo"  # small committed copies of the VIDA row-group index and clipped GridFinder lines
 UA = {"User-Agent": "Lodestar-hackathon/0.1 (geospatial feature pipeline)"}
 OVERPASS = ["https://maps.mail.ru/osm/tools/overpass/api/interpreter", "https://overpass-api.de/api/interpreter",
-            "https://overpass.kumi.systems/api/interpreter"]
+            "https://overpass.kumi.systems/api/interpreter", "https://overpass.private.coffee/api/interpreter"]
+LIVE_OVERPASS = {"retries": 1, "timeout": 60, "race": True}  # live app: one 60 s race across mirrors, then degrade
 MAX_GEO_BUILDINGS = 6000
 ISO3_TO_2 = {"NGA": "NG", "KEN": "KE", "COD": "CD"}
 
@@ -114,24 +116,46 @@ def building_stats(lat, lon, r_m, gdf):
 
 
 # ------------------------------------------------------------------ Overpass
-def overpass(query, retries=4):
+def overpass(query, retries=4, timeout=150, race=False):
+    """Cached Overpass call. race=True asks every mirror at once and keeps the first answer
+    (used for live requests, where one slow mirror would otherwise hold up the forecast)."""
     OVP_CACHE.mkdir(parents=True, exist_ok=True)
     f = OVP_CACHE / (hashlib.sha1(query.encode()).hexdigest() + ".json")
     if f.exists():
         return json.loads(f.read_text())
+
+    def ask(url):
+        r = requests.post(url, data={"data": query}, headers=UA, timeout=timeout)
+        if r.status_code != 200:
+            raise RuntimeError(f"{url} HTTP {r.status_code}")
+        return r.json()
+
     last = None
     for i in range(retries):
-        for url in OVERPASS:
+        if race:
+            ex = ThreadPoolExecutor(len(OVERPASS))
+            futs = [ex.submit(ask, u) for u in OVERPASS]
             try:
-                r = requests.post(url, data={"data": query}, headers=UA, timeout=150)
-                if r.status_code == 200:
-                    j = r.json()
+                for fu in as_completed(futs):
+                    try:
+                        j = fu.result()
+                    except Exception as e:
+                        last = str(e) if isinstance(e, RuntimeError) else type(e).__name__
+                        continue
                     f.write_text(json.dumps(j))
                     return j
-                last = f"{url} HTTP {r.status_code}"
-            except Exception as e:
-                last = f"{url} {type(e).__name__}"
-        time.sleep(3 * 2 ** i)
+            finally:
+                ex.shutdown(wait=False, cancel_futures=True)
+        else:
+            for url in OVERPASS:
+                try:
+                    j = ask(url)
+                    f.write_text(json.dumps(j))
+                    return j
+                except Exception as e:
+                    last = str(e) if isinstance(e, RuntimeError) else f"{url} {type(e).__name__}"
+        if i < retries - 1:
+            time.sleep(3 * 2 ** i)
     raise RuntimeError(f"Overpass failed: {last}")
 
 
@@ -167,10 +191,9 @@ nwr{a}[name~"mill",i];
 );out center tags;"""
 
 
-def get_pois(lat, lon, r_m):
-    j = overpass(poi_query(lat, lon, r_m))
+def _pois_from(elements):
     seen, pts = set(), []
-    for e in j.get("elements", []):
+    for e in elements:
         key = (e["type"], e["id"])
         if key in seen: continue
         seen.add(key)
@@ -184,15 +207,19 @@ def get_pois(lat, lon, r_m):
     return pts
 
 
-def road_dist_km(lat, lon, search_m=15000):
-    q = (f'[out:json][timeout:90];way(around:{search_m},{lat},{lon})'
-         f'[highway~"^(trunk|primary|secondary|tertiary)$"];out geom;')
-    j = overpass(q)
+def get_pois(lat, lon, r_m, **ovp):
+    return _pois_from(overpass(poi_query(lat, lon, r_m), **ovp).get("elements", []))
+
+
+ROAD_QUERY = '[highway~"^(trunk|primary|secondary|tertiary)$"]'
+
+
+def _nearest_line_km(lat, lon, elements):
     crs = utm_crs(lat, lon)
     tr = Transformer.from_crs(4326, crs, always_xy=True)
     p = Point(*tr.transform(lon, lat))
     best = None
-    for e in j.get("elements", []):
+    for e in elements:
         gm = e.get("geometry") or []
         if len(gm) < 2: continue
         xs, ys = tr.transform([g["lon"] for g in gm], [g["lat"] for g in gm])
@@ -201,9 +228,81 @@ def road_dist_km(lat, lon, search_m=15000):
     return None if best is None else best / 1000.0
 
 
-def admin1_of(lat, lon):
+def road_dist_km(lat, lon, search_m=15000, **ovp):
+    q = f'[out:json][timeout:90];way(around:{search_m},{lat},{lon}){ROAD_QUERY};out geom;'
+    return _nearest_line_km(lat, lon, overpass(q, **ovp).get("elements", []))
+
+
+# Pre-extracted OpenStreetMap layers for the countries the app covers (pipeline/osm_extract.py,
+# Geofabrik extracts of 2026-10-31). Live forecasts read these instead of calling Overpass.
+OSM_POIS, OSM_ROADS = GEO / "osm_pois.parquet", GEO / "osm_roads.parquet"
+OSM_AS_OF = "2026-10-31"
+_osm = {}
+
+
+def _osm_layers():
+    if not _osm:
+        p = pd.read_parquet(OSM_POIS)
+        r = pd.read_parquet(OSM_ROADS)
+        _osm.update(plat=p.lat.to_numpy(), plon=p.lon.to_numpy(), ptype=p.poi_type.astype(str).to_numpy(),
+                    rlat=r.lat.to_numpy(np.float64), rlon=r.lon.to_numpy(np.float64))
+    return _osm
+
+
+def _metres(lat, lon, la, lo):
+    return np.hypot((lo - lon) * 111320 * math.cos(math.radians(lat)), (la - lat) * 111320)
+
+
+def local_osm(lat, lon, r_m, road_m=15000):
+    """POIs within r_m and distance to the nearest trunk-tertiary road (within road_m), from the
+    pre-extracted layers. Same classification as the Overpass path."""
+    L = _osm_layers()
+    dlat, dlon = _deg_window(lat, r_m)
+    i0, i1 = np.searchsorted(L["plat"], [lat - dlat, lat + dlat])
+    la, lo = L["plat"][i0:i1], L["plon"][i0:i1]
+    m = (np.abs(lo - lon) <= dlon) & (_metres(lat, lon, la, lo) <= r_m)
+    pts = [{"poi_type": t, "name": None, "lat": float(a), "lon": float(b)}
+           for t, a, b in zip(L["ptype"][i0:i1][m], la[m], lo[m])]
+    dlat, dlon = _deg_window(lat, road_m)
+    j0, j1 = np.searchsorted(L["rlat"], [lat - dlat, lat + dlat])
+    ra, ro = L["rlat"][j0:j1], L["rlon"][j0:j1]
+    k = np.abs(ro - lon) <= dlon
+    d = _metres(lat, lon, ra[k], ro[k]) if k.any() else np.array([])
+    road = float(d.min()) / 1000 if d.size and d.min() <= road_m else None
+    return pts, road
+
+
+def admin1_nominatim(lat, lon):
+    r = requests.get("https://nominatim.openstreetmap.org/reverse", params={"lat": f"{lat:.4f}", "lon": f"{lon:.4f}",
+                     "zoom": 5, "format": "jsonv2", "accept-language": "en"}, headers=UA, timeout=8)
+    r.raise_for_status()
+    return (r.json().get("address") or {}).get("state")
+
+
+# The model only uses road distance as "more than 5 km from a major road" (village.drivers_for),
+# so live requests search 6 km instead of 15 km, which is far cheaper for Overpass.
+LIVE_ROAD_M = 6000
+
+
+def live_osm(lat, lon, r_m):
+    """POIs, nearest major road (within LIVE_ROAD_M) and admin-1 name in ONE Overpass request,
+    raced across mirrors. Returns (pois, road_km or None, admin1 or None)."""
+    pq = poi_query(lat, lon, r_m).split(";(", 1)[1].rsplit(";out center tags;", 1)[0]
+    q = (f"[out:json][timeout:55];({pq};out center tags;"
+         f"way(around:{LIVE_ROAD_M},{lat},{lon}){ROAD_QUERY};out geom;"
+         f"is_in({lat},{lon})->.a;area.a[boundary=administrative][admin_level=4];out tags;")
+    els = overpass(q, **LIVE_OVERPASS).get("elements", [])
+    areas = [e for e in els if e["type"] == "area"]
+    roads = [e for e in els if e["type"] == "way" and "geometry" in e]
+    rest = [e for e in els if e["type"] != "area" and "geometry" not in e]
+    adm = next((a.get("tags", {}).get("name:en") or a.get("tags", {}).get("name") for a in areas
+                if a.get("tags", {}).get("name:en") or a.get("tags", {}).get("name")), None)
+    return _pois_from(rest), _nearest_line_km(lat, lon, roads), adm
+
+
+def admin1_of(lat, lon, **ovp):
     q = f'[out:json][timeout:60];is_in({lat},{lon})->.a;area.a[boundary=administrative][admin_level=4];out tags;'
-    for e in overpass(q).get("elements", []):
+    for e in overpass(q, **ovp).get("elements", []):
         n = e.get("tags", {}).get("name:en") or e.get("tags", {}).get("name")
         if n: return n
     return None
@@ -290,90 +389,144 @@ def _num(x, nd=3):
     return None if x is None else round(float(x), nd)
 
 
-def compute_site(lat, lon, radius_m=1500, site_id=None, name=None, country=None, admin1=None, timings=None):
-    """Returns (features dict, buildings GeoDataFrame|None, pois list|None)."""
+def compute_site(lat, lon, radius_m=1500, site_id=None, name=None, country=None, admin1=None, timings=None,
+                 live=False, progress=None):
+    """Returns (features dict, buildings GeoDataFrame|None, pois list|None).
+
+    live=True fetches all sources at once and races the Overpass mirrors with a time budget (for
+    the web app); a source that fails or runs out of time yields nulls and a warning, never a guess.
+    `progress` (dict) is updated as each source finishes, for the app's progress display."""
     T = timings if timings is not None else {}
+    P = progress if progress is not None else {}
+    ovp = LIVE_OVERPASS if live else {}
     W = []
     out = {"site_id": site_id, "name": name, "country": country, "admin1": admin1,
            "lat": lat, "lon": lon, "radius_m": radius_m}
     area_km2 = math.pi * (radius_m / 1000) ** 2
+    res = {"bg": None, "pois": None}
 
-    # buildings
-    t = time.time(); bg = None
-    src = "VIDA Google-Microsoft-OSM Open Buildings (source.coop), areas computed in local UTM"
-    try:
-        raw, iso = get_buildings(lat, lon, radius_m)
-        bg = building_stats(lat, lon, radius_m, raw)
-        if country is None and iso: out["country"] = ISO3_TO_2.get(iso, iso)
-        a = bg.area_m2.values
-        out["buildings"] = {"count": int(len(bg)), "total_area_m2": _num(a.sum(), 1) if len(a) else 0.0,
-                            "median_area_m2": _num(np.median(a), 1) if len(a) else None,
-                            "n_small": int((bg.cls == "small").sum()), "n_residential": int((bg.cls == "residential").sum()),
-                            "n_large": int((bg.cls == "large").sum()),
-                            "density_per_km2": _num(len(bg) / area_km2, 1), "source": src}
-        if len(bg) == 0: W.append("no buildings found within radius")
-    except Exception as e:
-        out["buildings"] = {k: None for k in ["count", "total_area_m2", "median_area_m2", "n_small", "n_residential",
-                                               "n_large", "density_per_km2"]} | {"source": src}
-        W.append(f"buildings unavailable: {e}")
-    T["buildings"] = time.time() - t
+    def buildings():
+        src = "VIDA Google-Microsoft-OSM Open Buildings (source.coop), areas computed in local UTM"
+        try:
+            raw, iso = get_buildings(lat, lon, radius_m)
+            bg = building_stats(lat, lon, radius_m, raw)
+            if country is None and iso: out["country"] = ISO3_TO_2.get(iso, iso)
+            a = bg.area_m2.values
+            out["buildings"] = {"count": int(len(bg)), "total_area_m2": _num(a.sum(), 1) if len(a) else 0.0,
+                                "median_area_m2": _num(np.median(a), 1) if len(a) else None,
+                                "n_small": int((bg.cls == "small").sum()), "n_residential": int((bg.cls == "residential").sum()),
+                                "n_large": int((bg.cls == "large").sum()),
+                                "density_per_km2": _num(len(bg) / area_km2, 1), "source": src}
+            res["bg"] = bg
+            if len(bg) == 0: W.append("no buildings found within radius")
+        except Exception as e:
+            out["buildings"] = {k: None for k in ["count", "total_area_m2", "median_area_m2", "n_small", "n_residential",
+                                                   "n_large", "density_per_km2"]} | {"source": src}
+            W.append(f"buildings unavailable: {e}")
+            return False
 
-    # pois
-    t = time.time(); pois = None
-    try:
-        pois = get_pois(lat, lon, radius_m)
+    def pois():
+        try:
+            pts = get_pois(lat, lon, radius_m, **ovp)
+            cnt = {k: 0 for k in POI_KEYS}
+            for q in pts: cnt[q["poi_type"]] += 1
+            out["pois"] = cnt; res["pois"] = pts
+        except Exception as e:
+            out["pois"] = _null_pois(); W.append(f"POIs unavailable (Overpass): {e}")
+            return False
+
+    def grid():
+        g = {"dist_km": None, "electrified_target_frac": None}
+        try:
+            g["dist_km"] = _num(grid_dist_km(lat, lon))
+            if g["dist_km"] is None: W.append("grid distance unavailable: no GridFinder lines near point (outside clipped regions?)")
+        except Exception as e:
+            W.append(f"grid distance unavailable: {e}")
+        try:
+            g["electrified_target_frac"] = _num(target_frac(lat, lon, radius_m), 4)
+        except Exception as e:
+            W.append(f"electrified_target_frac unavailable: {e}")
+        out["grid"] = g
+
+    def road():
+        try:
+            d = road_dist_km(lat, lon, **ovp)
+            out["road"] = {"dist_major_km": _num(d)}
+            if d is None: W.append("no trunk/primary/secondary/tertiary road within 15 km in OSM (dist_major_km null)")
+        except Exception as e:
+            out["road"] = {"dist_major_km": None}; W.append(f"road distance unavailable (Overpass): {e}")
+            return False
+
+    def solar():
+        try:
+            out["solar"] = get_solar(lat, lon)
+        except Exception as e:
+            out["solar"] = {"ghi_annual": None, "ghi_monthly": None, "units": "kWh/m2/day"}
+            W.append(f"solar unavailable: {e}")
+            return False
+
+    def admin():
+        if out["admin1"] is None:
+            try: out["admin1"] = admin1_of(lat, lon, **ovp)
+            except Exception: pass
+            if out["admin1"] is None: W.append("admin1 unknown")
+
+    def osm():
+        if OSM_POIS.exists() and OSM_ROADS.exists():
+            pts, d = local_osm(lat, lon, radius_m)
+            cnt = {k: 0 for k in POI_KEYS}
+            for q in pts: cnt[q["poi_type"]] += 1
+            out["pois"] = cnt; res["pois"] = pts
+            out["road"] = {"dist_major_km": _num(d), "osm_as_of": OSM_AS_OF}
+            if d is None: W.append("no trunk/primary/secondary/tertiary road within 15 km in OSM (dist_major_km null)")
+            if out["admin1"] is None:
+                try: out["admin1"] = admin1_nominatim(lat, lon)
+                except Exception: pass
+                if out["admin1"] is None: W.append("admin1 unknown")
+            return
+        try:
+            pts, d, adm = live_osm(lat, lon, radius_m)
+        except Exception as e:
+            out["pois"] = _null_pois(); out["road"] = {"dist_major_km": None, "searched_km": LIVE_ROAD_M / 1000}
+            W.append(f"OpenStreetMap unavailable (Overpass): {e}; POIs and road distance missing")
+            if out["admin1"] is None: W.append("admin1 unknown")
+            return False
         cnt = {k: 0 for k in POI_KEYS}
-        for p in pois: cnt[p["poi_type"]] += 1
-        out["pois"] = cnt
-    except Exception as e:
-        out["pois"] = _null_pois(); W.append(f"POIs unavailable (Overpass): {e}")
-    T["pois"] = time.time() - t
+        for q in pts: cnt[q["poi_type"]] += 1
+        out["pois"] = cnt; res["pois"] = pts
+        out["road"] = {"dist_major_km": _num(d), "searched_km": LIVE_ROAD_M / 1000}
+        if d is None: W.append(f"no trunk/primary/secondary/tertiary road within {LIVE_ROAD_M / 1000:.0f} km in OSM (dist_major_km null)")
+        if out["admin1"] is None: out["admin1"] = adm
+        if out["admin1"] is None: W.append("admin1 unknown")
 
-    # grid
-    t = time.time()
-    g = {"dist_km": None, "electrified_target_frac": None}
-    try:
-        g["dist_km"] = _num(grid_dist_km(lat, lon))
-        if g["dist_km"] is None: W.append("grid distance unavailable: no GridFinder lines near point (outside clipped regions?)")
-    except Exception as e:
-        W.append(f"grid distance unavailable: {e}")
-    try:
-        g["electrified_target_frac"] = _num(target_frac(lat, lon, radius_m), 4)
-    except Exception as e:
-        W.append(f"electrified_target_frac unavailable: {e}")
-    out["grid"] = g
-    T["grid"] = time.time() - t
+    def run(key, fn):
+        t = time.time(); P[key] = "running"
+        ok = fn()
+        T[key] = time.time() - t; P[key] = "failed" if ok is False else "done"
 
-    # road
-    t = time.time()
-    try:
-        d = road_dist_km(lat, lon)
-        out["road"] = {"dist_major_km": _num(d)}
-        if d is None: W.append("no trunk/primary/secondary/tertiary road within 15 km in OSM (dist_major_km null)")
-    except Exception as e:
-        out["road"] = {"dist_major_km": None}; W.append(f"road distance unavailable (Overpass): {e}")
-    T["road"] = time.time() - t
+    if live:
+        steps = [("buildings", buildings), ("osm", osm), ("grid", grid), ("solar", solar)]
+    else:
+        steps = [("buildings", buildings), ("pois", pois), ("grid", grid), ("road", road), ("solar", solar), ("admin1", admin)]
+    if live:
+        with ThreadPoolExecutor(len(steps)) as ex:
+            list(ex.map(lambda kv: run(*kv), steps))
+    else:
+        for kv in steps: run(*kv)
 
     out["population"] = {"worldpop": None}  # not implemented; see README
-
-    t = time.time()
-    try:
-        out["solar"] = get_solar(lat, lon)
-    except Exception as e:
-        out["solar"] = {"ghi_annual": None, "ghi_monthly": None, "units": "kWh/m2/day"}
-        W.append(f"solar unavailable: {e}")
-    T["solar"] = time.time() - t
-
-    if out["admin1"] is None:
-        try: out["admin1"] = admin1_of(lat, lon)
-        except Exception: pass
-        if out["admin1"] is None: W.append("admin1 unknown")
     out["warnings"] = W
     out["fetched_at"] = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
     # key order per schema
     order = ["site_id", "name", "country", "admin1", "lat", "lon", "radius_m", "buildings", "pois", "grid", "road",
              "population", "solar", "warnings", "fetched_at"]
-    return {k: out[k] for k in order}, bg, pois
+    return {k: out[k] for k in order}, res["bg"], res["pois"]
+
+
+def warm():
+    """Load the slow-to-start pieces (DuckDB extensions, building index, grid lines) ahead of the first request."""
+    _con(); _vida_index(); _load_grid()
+    if OSM_POIS.exists(): _osm_layers()
 
 
 def geojson_for(bg, pois):
