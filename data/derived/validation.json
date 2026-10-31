@@ -852,6 +852,29 @@
    "Lubero": "Town-scale site; 38 months of data."
   },
   "summary": {
+   "decision_backtest": {
+    "desk": {
+     "abs_capacity_gap_kwp": 155.45769038297092,
+     "capex_usd": 3170174.5460919845,
+     "idle_capital_y3_usd": 547682.1135885752,
+     "unserved_mwh": 143.2489242690486,
+     "diesel_litres": 47749.641423016204
+    },
+    "lodestar": {
+     "abs_capacity_gap_kwp": 43.86244923954226,
+     "capex_usd": 3723872.919455025,
+     "idle_capital_y3_usd": 505203.1563101902,
+     "unserved_mwh": 137.8709588210409,
+     "diesel_litres": 45956.98627368029
+    },
+    "hindsight": {
+     "abs_capacity_gap_kwp": 0.0,
+     "capex_usd": 3407668.522887165,
+     "idle_capital_y3_usd": 188998.7597423299,
+     "unserved_mwh": 94.1084109480153,
+     "diesel_litres": 31369.4703160051
+    }
+   },
    "end_to_end_village": {
     "annual_abs_error": 0.40140186757785107,
     "annual_coverage": 0.8333333333333334,
@@ -1210,6 +1233,132 @@
       ],
       "baseline_persistence_wape": 0.25491548332601255
      }
+    }
+   }
+  },
+  "decision_backtest": {
+   "Lubero": {
+    "desk": {
+     "sized_on_kwh_month": 23455.32166923739,
+     "initial_kwp": 211.6028985657448,
+     "final_kwp": 211.6028985657448,
+     "capex_usd": 1525445.2957604541,
+     "expansions": [],
+     "idle_capacity_share_y3": 0.0,
+     "idle_capital_y3_usd": 0.0,
+     "unserved_share": 0.1586724673910846,
+     "unserved_mwh": 130.24311964989826,
+     "diesel_litres": 43414.37321663276,
+     "diesel_usd": 43414.37321663276,
+     "co2_t": 116.35052022057582,
+     "months": 35,
+     "capex_per_mwh_served_usd": 2208.911526773701,
+     "kwp_vs_hindsight_y3": -0.3080435730026848
+    },
+    "lodestar": {
+     "sized_on_kwh_month": 25152.83349576655,
+     "initial_kwp": 226.9170531916567,
+     "final_kwp": 340.375579787485,
+     "capex_usd": 2453767.554687979,
+     "expansions": [
+      {
+       "month": 19,
+       "added_kwp": 56.72926329791417
+      },
+      {
+       "month": 31,
+       "added_kwp": 56.72926329791417
+      }
+     ],
+     "idle_capacity_share_y3": 0.13536120308198263,
+     "idle_capital_y3_usd": 332144.92828609946,
+     "unserved_share": 0.024743836890962673,
+     "unserved_mwh": 20.3104833609482,
+     "diesel_litres": 6770.161120316067,
+     "diesel_usd": 6770.161120316067,
+     "co2_t": 18.14403180244706,
+     "months": 35,
+     "capex_per_mwh_served_usd": 3065.2189455229127,
+     "kwp_vs_hindsight_y3": 0.11305219173881165
+    },
+    "hindsight": {
+     "sized_on_kwh_month": 33897.107901749994,
+     "initial_kwp": 305.8037909756503,
+     "final_kwp": 305.8037909756503,
+     "capex_usd": 2204539.5291434634,
+     "expansions": [],
+     "idle_capacity_share_y3": 0.03761189202799149,
+     "idle_capital_y3_usd": 82916.90274158314,
+     "unserved_share": 0.014888809873014957,
+     "unserved_mwh": 12.221181643039301,
+     "diesel_litres": 4073.727214346434,
+     "diesel_usd": 4073.727214346434,
+     "co2_t": 10.917588934448444,
+     "months": 35,
+     "capex_per_mwh_served_usd": 2726.336281913981,
+     "kwp_vs_hindsight_y3": 0.0
+    }
+   },
+   "Mutwanga": {
+    "desk": {
+     "sized_on_kwh_month": 23571.900166322455,
+     "initial_kwp": 228.14943131246085,
+     "final_kwp": 228.14943131246085,
+     "capex_usd": 1644729.2503315303,
+     "expansions": [],
+     "idle_capacity_share_y3": 0.3329922620870141,
+     "idle_capital_y3_usd": 547682.1135885752,
+     "unserved_share": 0.01923959497355186,
+     "unserved_mwh": 13.00580461915033,
+     "diesel_litres": 4335.268206383444,
+     "diesel_usd": 4335.268206383444,
+     "co2_t": 11.61851879310763,
+     "months": 36,
+     "capex_per_mwh_served_usd": 2480.7910787388014,
+     "kwp_vs_hindsight_y3": 0.3670431507212941
+    },
+    "lodestar": {
+     "sized_on_kwh_month": 12135.24834070798,
+     "initial_kwp": 117.45552917806869,
+     "final_kwp": 176.18329376710304,
+     "capex_usd": 1270105.3647670457,
+     "expansions": [
+      {
+       "month": 8,
+       "added_kwp": 29.363882294517172
+      },
+      {
+       "month": 20,
+       "added_kwp": 29.363882294517172
+      }
+     ],
+     "idle_capacity_share_y3": 0.13625501696533024,
+     "idle_capital_y3_usd": 173058.2280240908,
+     "unserved_share": 0.1739081893802992,
+     "unserved_mwh": 117.56047546009269,
+     "diesel_litres": 39186.825153364225,
+     "diesel_usd": 39186.825153364225,
+     "co2_t": 105.02069141101613,
+     "months": 36,
+     "capex_per_mwh_served_usd": 2274.4172118112388,
+     "kwp_vs_hindsight_y3": 0.05566848722923545
+    },
+    "hindsight": {
+     "sized_on_kwh_month": 17242.981798990906,
+     "initial_kwp": 166.89263333939545,
+     "final_kwp": 166.89263333939545,
+     "capex_usd": 1203128.9937437018,
+     "expansions": [],
+     "idle_capacity_share_y3": 0.08817164040794861,
+     "idle_capital_y3_usd": 106081.85700074674,
+     "unserved_share": 0.1211364595631632,
+     "unserved_mwh": 81.887229304976,
+     "diesel_litres": 27295.743101658667,
+     "diesel_usd": 27295.743101658667,
+     "co2_t": 73.15259151244523,
+     "months": 36,
+     "capex_per_mwh_served_usd": 2025.113851994939,
+     "kwp_vs_hindsight_y3": 0.0
     }
    }
   },

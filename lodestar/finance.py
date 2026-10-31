@@ -5,6 +5,11 @@ Cited benchmarks (AMDA, Benchmarking Africa's Minigrids 2024):
   OPEX per customer 2024: $16-26 per year (sec. 5 summary) -> midpoint $21
   Average tariff: $0.40/kWh East & Southern (residential), $0.25/kWh West & Central (sec. 6.3)
   Residential ARPU: $2.5 East & Southern, $2.0 West & Central per month (Table 8)
+  CAPEX per connection: $1,948 East & Southern, $1,046 West & Central (Figure 12)
+  RBF grants: Nigeria Electrification Project subsidised $350-600 per connection (sec. 4.1)
+Productive-use scenario: CrossBoundary Innovation Lab found average consumption of 11.0 kWh/month
+on sites with income-generating-appliance financing vs 6.7 on control sites (CrossBoundary/ESMAP
+Access-to-Finance roadshow, 2025).
 Everything else in ASSUMPTIONS is a team assumption shown in the UI and editable via the API.
 """
 from __future__ import annotations
@@ -15,6 +20,9 @@ CAPEX_PER_KWP = {"east_south": 5775.0, "west_central": 7209.0}
 TARIFF = {"east_south": 0.40, "west_central": 0.25}
 ARPU_HH = {"east_south": 2.5, "west_central": 2.0}
 OPEX_PER_CUSTOMER_YR = 21.0
+CAPEX_PER_CONNECTION = {"east_south": 1948.0, "west_central": 1046.0}
+RBF_GRANT_PER_CONNECTION = (350.0, 600.0)
+PUE_UPLIFT = 11.0 / 6.7
 
 ASSUMPTIONS = {
     "performance_ratio": 0.75,       # PV system losses
@@ -34,16 +42,18 @@ ASSUMPTIONS = {
 SIZE_YEAR = 3
 
 
-def annual_paths(draws, life: int) -> tuple[np.ndarray, np.ndarray]:
-    """Annual energy (kWh) and mean connections per draw, years 1..life (flat after the forecast horizon)."""
+def annual_paths(draws, life: int, uplift: float = 1.0) -> tuple[np.ndarray, np.ndarray]:
+    """Annual energy (kWh) and mean connections per draw, years 1..life (flat after the forecast horizon).
+    `uplift` scales household and business consumption (productive-use scenario); anchors are unchanged."""
     T = int(draws.months.max())
     yrs = T // 12
     e, c = [], []
     conn_tot = sum(draws.conn.values())
     n_anchor = len([k for k in draws.params if k.startswith("anchor")])
+    total = sum(v * (1.0 if k == "anchors" else uplift) for k, v in draws.energy.items())
     for y in range(1, yrs + 1):
         m = (draws.months > 12 * (y - 1)) & (draws.months <= 12 * y)
-        e.append(draws.total[:, m].sum(axis=1))
+        e.append(total[:, m].sum(axis=1))
         c.append(conn_tot[:, m].mean(axis=1) + n_anchor)
     e, c = np.stack(e, 1), np.stack(c, 1)
     if life > yrs:
@@ -103,10 +113,10 @@ def debt_capacity(cfads: np.ndarray, pctile: float, a=ASSUMPTIONS) -> float:
     return max(cf / a["dscr_covenant"], 0.0) * (1 - (1 + r) ** -(n - g)) / r / (1 + r) ** g
 
 
-def stress_test(draws, feat, region: str, profile: dict, a=None) -> dict:
+def stress_test(draws, feat, region: str, profile: dict, a=None, uplift: float = 1.0) -> dict:
     a = {**ASSUMPTIONS, **(a or {})}
     life = int(a["life_years"])
-    energy, conn = annual_paths(draws, life)
+    energy, conn = annual_paths(draws, life, uplift)
     y3 = energy[:, SIZE_YEAR - 1]
     tariff = TARIFF[region]
     night = sum(v for h, v in enumerate(profile["total_kw"]) if h < 7 or h >= 18) / max(sum(profile["total_kw"]), 1e-9)
@@ -114,6 +124,19 @@ def stress_test(draws, feat, region: str, profile: dict, a=None) -> dict:
     peak_per_kwhday = profile["peak_kw"] / max(sum(profile["total_kw"]), 1e-9)
 
     disc = (1 + a["hurdle_irr"]) ** -np.arange(1, life + 1)
+    crf = a["hurdle_irr"] / (1 - (1 + a["hurdle_irr"]) ** -life)
+    c50 = np.median(conn, axis=0)
+    n_conn = max(float(np.median(conn[:, SIZE_YEAR - 1])), 1)
+
+    def cost_of_power(capex, served):
+        """Annualised CAPEX at the hurdle rate + OPEX, per kWh served, on the P50 path."""
+        return (capex * crf + float(np.mean(c50)) * OPEX_PER_CUSTOMER_YR) / float(np.mean(np.median(served, 0)))
+
+    def tariff_needed(capex, served, grant_usd=0.0):
+        """Tariff that earns the hurdle IRR on the P50 path (revenue is linear in tariff)."""
+        e = np.median(served, 0)
+        return ((capex - grant_usd) + (c50 * OPEX_PER_CUSTOMER_YR * disc).sum()) / ((e * a["collection_rate"] * disc).sum())
+
     tenor, grace = int(a["debt_tenor"]), int(a["debt_grace_years"])
 
     def breach_prob(cfads, principal):
@@ -141,7 +164,7 @@ def stress_test(draws, feat, region: str, profile: dict, a=None) -> dict:
         dscr = cfads[:, grace:tenor] / ds if ds > 0 else np.full((energy.shape[0], tenor - grace), np.nan)
         breach = {lab: breach_prob(cfads, v) for lab, v in debt.items()}
         unserved = 1 - served.sum(1) / energy.sum(1)
-        return dict(size=size, capex=capex, p_irr=p_irr, unserved=unserved, cfads=cfads,
+        return dict(size=size, capex=capex, p_irr=p_irr, unserved=unserved, cfads=cfads, served=served,
                     ds=ds, grant=g, g_need=g_need, invest=invest, principal=principal, dscr=dscr, debt=debt, breach=breach)
 
     q = {"p90": np.percentile(y3, 10), "p50": np.percentile(y3, 50), "p10": np.percentile(y3, 90)}
@@ -160,6 +183,8 @@ def stress_test(draws, feat, region: str, profile: dict, a=None) -> dict:
             "debt_p50_usd": ev["debt"]["p50"], "prob_dscr_breach_if_p50_debt": ev["breach"]["p50"],
             "unserved_share_median": float(np.median(unserved)),
             "unserved_share_p10_demand": float(np.percentile(unserved, 90)),
+            "cost_of_power_usd_kwh": cost_of_power(capex, ev["served"]),
+            "tariff_with_rbf_usd_kwh": tariff_needed(capex, ev["served"], RBF_GRANT_PER_CONNECTION[1] * n_conn),
         }
 
     # Recommended: size on P50, stress across all draws
@@ -170,13 +195,11 @@ def stress_test(draws, feat, region: str, profile: dict, a=None) -> dict:
     p50b = ev["breach"]["p50"]
     breakeven = float(np.percentile(y3, 100 * p50b)) / 12 if 0 < p50b < 1 else None
     safe_debt = ev["debt"]["p90"]
-    # tariff needed for the hurdle IRR on the P50 path (revenue is linear in tariff)
-    e50 = np.median(np.minimum(energy, size["deliverable_kwh_yr"]), axis=0)
-    c50 = np.median(conn, axis=0)
-    invest = capex  # unsubsidised
-    req_tariff = (invest + (c50 * OPEX_PER_CUSTOMER_YR * disc).sum()) / ((e50 * a["collection_rate"] * disc).sum())
-    hh_kwh = float(np.median(draws.q["household"][:, 36])) if "household" in draws.q else None
-    return {
+    req_tariff = tariff_needed(capex, ev["served"])
+    hh_kwh = float(np.median(draws.q["household"][:, 36])) * uplift if "household" in draws.q else None
+    lcoe = cost_of_power(capex, ev["served"])
+    gpc = ev["grant"] * capex / n_conn
+    out = {
         "region_tariff_usd_kwh": tariff, "capex_per_kwp_usd": CAPEX_PER_KWP[region],
         "opex_per_customer_usd_yr": OPEX_PER_CUSTOMER_YR, "assumptions": a,
         "night_share": night, "options": options, "recommended": "p50",
@@ -193,10 +216,16 @@ def stress_test(draws, feat, region: str, profile: dict, a=None) -> dict:
         "dscr_years": list(range(grace + 1, tenor + 1)),
         "dscr_by_year_p50": np.nan_to_num(np.median(ev["dscr"], 0)).tolist(),
         "dscr_by_year_p90": np.nan_to_num(np.percentile(ev["dscr"], 10, 0)).tolist(),
-        "grant_per_connection_usd": ev["grant"] * capex / max(float(np.median(conn[:, SIZE_YEAR - 1])), 1),
+        "grant_per_connection_usd": gpc,
+        "rbf_benchmark_per_connection_usd": RBF_GRANT_PER_CONNECTION,
+        "rbf_fit": "within" if gpc <= RBF_GRANT_PER_CONNECTION[1] else "above",
+        "capex_per_connection_usd": capex / n_conn, "amda_capex_per_connection_usd": CAPEX_PER_CONNECTION[region],
+        "lcoe_usd_kwh": lcoe, "uplift": uplift,
+        "tariff_with_rbf_usd_kwh": tariff_needed(capex, ev["served"], RBF_GRANT_PER_CONNECTION[1] * n_conn),
         "cfads_by_year": {k: np.percentile(cfads[:, :10], q, 0).tolist() for k, q in (("p90", 10), ("p50", 50), ("p10", 90))},
         "first_year_p90_covers_opex": next((y + 1 for y in range(cfads.shape[1]) if np.percentile(cfads[:, y], 10) > 0), None),
         "required_tariff_usd_kwh": float(req_tariff),
         "affordability": {"hh_kwh_month_y3_p50": hh_kwh, "hh_bill_usd_month": None if hh_kwh is None else hh_kwh * tariff,
                           "amda_residential_arpu_usd_month": ARPU_HH[region]},
     }
+    return out

@@ -167,6 +167,37 @@ def main():
                 **metrics(t, actual, bands_at(dk, t), k, at(dk, t)),
                 "baseline_persistence_wape": float(np.sum(np.abs(actual[n - 1] - actual[mm])) / np.sum(actual[mm]))}
             paths[name][f"e2e_after_{k}"] = {kk: v.tolist() for kk, v in bands_at(dk, t).items()}
+    # Decision backtest: replay actual monthly demand (first 36 months) against a single desk build and
+    # Lodestar's plan (build at open-data day-0 P50, expand on sustained metered demand).
+    from lodestar import decision as DB
+    out["decision_backtest"] = {}
+    for name in feats:
+        panel = panels[name]
+        train = [fits[o] for o in panels if o != name]
+        R_hh = np.exp(np.mean([np.log(f["household"]["R"]) for f in train]))
+        R_sme = np.exp(np.mean([np.log(f["sme"]["R"]) for f in train]))
+        desk = panel.pot_hh * R_hh * AMDA_ACPU[REGION]["household"] + panel.pot_sme * R_sme * AMDA_ACPU[REGION]["sme"]
+        other = [o for o in feats if o != name][0]
+        po, fo = panels[other], feats[other]["buildings"]
+        spec = V.build_spec(feats[name], fits=[fits[o] for o in panels if o != name], horizon=36,
+                            hh_ratio=po.pot_hh / (fo["n_residential"] + fo["n_small"]), sme_ratio=po.pot_sme / fo["n_large"])
+        p50 = float(np.median(V.year_energy(simulate(spec, n=N_DRAWS, seed=2), 3))) / 12
+        prof = V.hourly_profile(simulate(spec, n=4000, seed=3), feats[name])["total_kw"]
+        night = sum(v for h, v in enumerate(prof) if h < 7 or h >= 18) / sum(prof)
+        m = panel.months <= 36
+        r = DB.backtest(panel.months[m], panel.total_kwh[m], desk, p50, night, feats[name]["solar"]["ghi_monthly"], REGION)
+        h = r["hindsight"]["final_kwp"]
+        for k in r:
+            r[k]["kwp_vs_hindsight_y3"] = r[k]["final_kwp"] / h - 1 if k != "hindsight" else 0.0
+        out["decision_backtest"][name] = r
+    dbt = out["decision_backtest"]
+    out["summary"]["decision_backtest"] = {
+        k: {"abs_capacity_gap_kwp": float(sum(abs(v[k]["final_kwp"] - v["hindsight"]["final_kwp"]) for v in dbt.values())),
+            "capex_usd": float(sum(v[k]["capex_usd"] for v in dbt.values())),
+            "idle_capital_y3_usd": float(sum(v[k]["idle_capital_y3_usd"] for v in dbt.values())),
+            "unserved_mwh": float(sum(v[k]["unserved_mwh"] for v in dbt.values())),
+            "diesel_litres": float(sum(v[k]["diesel_litres"] for v in dbt.values()))}
+        for k in ("desk", "lodestar", "hindsight")}
     e2e = out["end_to_end"]
     out["summary"]["end_to_end_village"] = {
         "annual_abs_error": float(np.mean([abs(y["error"]) for s in e2e.values() for y in s["years"]])),
