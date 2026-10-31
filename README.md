@@ -13,7 +13,7 @@ What P90 energy-yield reports did for solar project finance, Lodestar does for m
 | | |
 |---|---|
 | **Live app** | **https://lodestar-utfz.onrender.com** (free hosting: the first visit after idle can take 30–60 s to wake up) |
-| Demo video (4:17) | *link added at submission* |
+| **Demo video (4:17)** | **https://youtu.be/lSxJWJSjBLc** |
 | Pitch video | *link added at submission* |
 | Pitch deck (organisers' template, 5 slides) | [`docs/Lodestar_Brief03_Pitch.pdf`](docs/Lodestar_Brief03_Pitch.pdf) · editable [`.pptx`](docs/Lodestar_Brief03_Pitch.pptx) |
 | One-page summary | [`docs/lodestar-one-pager.pdf`](docs/lodestar-one-pager.pdf) |
