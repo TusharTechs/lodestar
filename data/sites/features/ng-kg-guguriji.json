@@ -1,0 +1,62 @@
+{
+ "site_id": "ng-kg-guguriji",
+ "name": "Guguriji",
+ "country": "NG",
+ "admin1": "Kogi",
+ "lat": 8.3896628,
+ "lon": 6.1565521,
+ "radius_m": 1500,
+ "buildings": {
+  "count": 185,
+  "total_area_m2": 6549.9,
+  "median_area_m2": 18.4,
+  "n_small": 135,
+  "n_residential": 39,
+  "n_large": 11,
+  "density_per_km2": 26.2,
+  "source": "VIDA Google-Microsoft-OSM Open Buildings (source.coop), areas computed in local UTM"
+ },
+ "pois": {
+  "school": 0,
+  "health": 0,
+  "market": 0,
+  "worship": 0,
+  "shop": 0,
+  "mill": 0,
+  "telecom": 0,
+  "fuel": 0,
+  "bank": 0,
+  "water_pump": 0,
+  "other_commercial": 0
+ },
+ "grid": {
+  "dist_km": 11.942,
+  "electrified_target_frac": 0.0
+ },
+ "road": {
+  "dist_major_km": 0.059
+ },
+ "population": {
+  "worldpop": null
+ },
+ "solar": {
+  "ghi_annual": 5.177,
+  "ghi_monthly": [
+   5.27,
+   5.283,
+   5.587,
+   5.586,
+   5.412,
+   5.053,
+   4.609,
+   4.336,
+   4.738,
+   5.247,
+   5.631,
+   5.397
+  ],
+  "units": "kWh/m2/day"
+ },
+ "warnings": [],
+ "fetched_at": "2026-10-31T09:32:15+00:00"
+}

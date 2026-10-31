@@ -24,9 +24,10 @@ ASSUMPTIONS = {
     "collection_rate": 0.95,
     "life_years": 20,
     "grant_share": None,             # share of CAPEX covered by grant (e.g. RBF); None = grant needed at P50
-    "debt_share": 0.50,              # share of the non-grant investment financed by debt
+    "debt_sizing": "p90",            # size debt so DSCR >= covenant on the P90 (or P50) demand path
     "debt_rate": 0.12,
     "debt_tenor": 7,
+    "debt_grace_years": 2,           # no debt service while connections ramp up; interest capitalised
     "dscr_covenant": 1.20,
     "hurdle_irr": 0.12,
 }
@@ -90,8 +91,16 @@ def project_cashflows(energy, conn, size, capex, tariff, a=ASSUMPTIONS):
 
 
 def debt_service(principal, a=ASSUMPTIONS):
-    r, n = a["debt_rate"], a["debt_tenor"]
-    return principal * r / (1 - (1 + r) ** -n)
+    """Annual payment after the grace period (interest capitalised during grace)."""
+    r, n, g = a["debt_rate"], int(a["debt_tenor"]), int(a["debt_grace_years"])
+    return principal * (1 + r) ** g * r / (1 - (1 + r) ** -(n - g))
+
+
+def debt_capacity(cfads: np.ndarray, pctile: float, a=ASSUMPTIONS) -> float:
+    """Largest annuity loan whose DSCR stays >= covenant every year on the given cash-flow percentile path."""
+    r, n, g = a["debt_rate"], int(a["debt_tenor"]), int(a["debt_grace_years"])
+    cf = np.percentile(cfads[:, g:n], pctile, axis=0).min()
+    return max(cf / a["dscr_covenant"], 0.0) * (1 - (1 + r) ** -(n - g)) / r / (1 + r) ** g
 
 
 def stress_test(draws, feat, region: str, profile: dict, a=None) -> dict:
@@ -105,6 +114,12 @@ def stress_test(draws, feat, region: str, profile: dict, a=None) -> dict:
     peak_per_kwhday = profile["peak_kw"] / max(sum(profile["total_kw"]), 1e-9)
 
     disc = (1 + a["hurdle_irr"]) ** -np.arange(1, life + 1)
+    tenor, grace = int(a["debt_tenor"]), int(a["debt_grace_years"])
+
+    def breach_prob(cfads, principal):
+        if principal <= 0:
+            return 0.0
+        return float(np.mean((cfads[:, grace:tenor] / debt_service(principal, a)).min(1) < a["dscr_covenant"]))
 
     def grant_needed(cfads, capex):
         """Share of CAPEX a grant must cover so the project earns the hurdle IRR, per draw."""
@@ -120,13 +135,14 @@ def stress_test(draws, feat, region: str, profile: dict, a=None) -> dict:
         invest = capex * (1 - g)
         proj = np.concatenate([np.full((energy.shape[0], 1), -invest), cfads], 1)
         p_irr = irr(proj)
-        principal = invest * a["debt_share"]
+        debt = {lab: min(debt_capacity(cfads, pc, a), invest) for lab, pc in (("p90", 10), ("p50", 50))}
+        principal = debt[a["debt_sizing"]]
         ds = debt_service(principal, a)
-        dscr = cfads[:, : int(a["debt_tenor"])] / ds if ds > 0 else np.full((energy.shape[0], 1), np.inf)
-        min_dscr = dscr.min(axis=1)
+        dscr = cfads[:, grace:tenor] / ds if ds > 0 else np.full((energy.shape[0], tenor - grace), np.nan)
+        breach = {lab: breach_prob(cfads, v) for lab, v in debt.items()}
         unserved = 1 - served.sum(1) / energy.sum(1)
-        return dict(size=size, capex=capex, p_irr=p_irr, min_dscr=min_dscr, unserved=unserved, cfads=cfads, ds=ds,
-                    grant=g, g_need=g_need, invest=invest, principal=principal, dscr=dscr)
+        return dict(size=size, capex=capex, p_irr=p_irr, unserved=unserved, cfads=cfads,
+                    ds=ds, grant=g, g_need=g_need, invest=invest, principal=principal, dscr=dscr, debt=debt, breach=breach)
 
     q = {"p90": np.percentile(y3, 10), "p50": np.percentile(y3, 50), "p10": np.percentile(y3, 90)}
     options = {}
@@ -134,29 +150,26 @@ def stress_test(draws, feat, region: str, profile: dict, a=None) -> dict:
     base = evaluate(q["p50"], a["grant_share"])
     for lab, v in q.items():
         ev = evaluate(v, base["grant"])
-        size, capex, p_irr, min_dscr, unserved = ev["size"], ev["capex"], ev["p_irr"], ev["min_dscr"], ev["unserved"]
+        size, capex, p_irr, unserved = ev["size"], ev["capex"], ev["p_irr"], ev["unserved"]
         options[lab] = {
             "sized_on_kwh_month": v / 12, "pv_kwp": size["pv_kwp"], "battery_kwh": size["battery_kwh"],
             "inverter_kw": size["inverter_kw"], "capex_usd": capex,
             "irr_p50": float(np.nanmedian(p_irr)), "irr_p90": float(np.nanpercentile(p_irr, 10)),
             "prob_irr_below_hurdle": float(np.mean(np.nan_to_num(p_irr, nan=-1) < a["hurdle_irr"])),
-            "prob_dscr_breach": float(np.mean(min_dscr < a["dscr_covenant"])),
+            "prob_dscr_breach": ev["breach"][a["debt_sizing"]], "debt_usd": ev["principal"],
+            "debt_p50_usd": ev["debt"]["p50"], "prob_dscr_breach_if_p50_debt": ev["breach"]["p50"],
             "unserved_share_median": float(np.median(unserved)),
             "unserved_share_p10_demand": float(np.percentile(unserved, 90)),
         }
 
     # Recommended: size on P50, stress across all draws
     ev = base
-    size, capex, p_irr, min_dscr, unserved, cfads, ds = (ev[k] for k in ("size", "capex", "p_irr", "min_dscr", "unserved", "cfads", "ds"))
-    breach = min_dscr < a["dscr_covenant"]
-    p_breach = float(breach.mean())
-    # demand level below which DSCR breaches: the year-3 demand at the breach-probability quantile
-    breakeven = float(np.percentile(y3, 100 * p_breach)) / 12 if 0 < p_breach < 1 else None
-    # debt that is safe on the P90 demand path (DSCR >= covenant every year of the tenor)
-    i90 = np.argsort(y3)[int(0.10 * len(y3))]
-    cf90 = cfads[i90, : int(a["debt_tenor"])].min()
-    r, n = a["debt_rate"], a["debt_tenor"]
-    safe_debt = max(cf90 / a["dscr_covenant"], 0) * (1 - (1 + r) ** -n) / r
+    size, capex, p_irr, unserved, cfads, ds = (ev[k] for k in ("size", "capex", "p_irr", "unserved", "cfads", "ds"))
+    p_breach = ev["breach"][a["debt_sizing"]]
+    # if debt were sized on P50 demand instead: how often, and below what demand, the covenant breaks
+    p50b = ev["breach"]["p50"]
+    breakeven = float(np.percentile(y3, 100 * p50b)) / 12 if 0 < p50b < 1 else None
+    safe_debt = ev["debt"]["p90"]
     # tariff needed for the hurdle IRR on the P50 path (revenue is linear in tariff)
     e50 = np.median(np.minimum(energy, size["deliverable_kwh_yr"]), axis=0)
     c50 = np.median(conn, axis=0)
@@ -169,13 +182,20 @@ def stress_test(draws, feat, region: str, profile: dict, a=None) -> dict:
         "night_share": night, "options": options, "recommended": "p50",
         "irr_distribution": {k: float(np.nanpercentile(p_irr, v)) for k, v in (("p90", 10), ("p50", 50), ("p10", 90))},
         "irr_histogram": np.histogram(np.clip(np.nan_to_num(p_irr, nan=-0.2), -0.2, 0.5), bins=28, range=(-0.2, 0.5))[0].tolist(),
-        "prob_dscr_breach": p_breach, "breach_below_kwh_month": breakeven,
-        "breach_percentile_label": f"P{round(100 * (1 - p_breach))}" if 0 < p_breach < 1 else None,
+        "prob_dscr_breach": p_breach, "debt_sized_on": a["debt_sizing"],
+        "debt_p50_usd": ev["debt"]["p50"], "prob_dscr_breach_if_p50_debt": p50b,
+        "breach_below_kwh_month": breakeven,
+        "breach_percentile_label": f"P{round(100 * (1 - p50b))}" if 0 < p50b < 1 else None,
         "debt_service_usd_yr": ds, "debt_planned_usd": ev["principal"], "safe_debt_p90_usd": safe_debt,
         "grant_share_used": ev["grant"], "grant_usd": ev["grant"] * capex, "capex_usd": capex,
         "grant_needed": {"p90_demand": float(np.percentile(ev["g_need"], 90)), "p50_demand": float(np.median(ev["g_need"])),
                          "p10_demand": float(np.percentile(ev["g_need"], 10))},
-        "dscr_by_year_p50": np.median(ev["dscr"], 0).tolist(), "dscr_by_year_p90": np.percentile(ev["dscr"], 10, 0).tolist(),
+        "dscr_years": list(range(grace + 1, tenor + 1)),
+        "dscr_by_year_p50": np.nan_to_num(np.median(ev["dscr"], 0)).tolist(),
+        "dscr_by_year_p90": np.nan_to_num(np.percentile(ev["dscr"], 10, 0)).tolist(),
+        "grant_per_connection_usd": ev["grant"] * capex / max(float(np.median(conn[:, SIZE_YEAR - 1])), 1),
+        "cfads_by_year": {k: np.percentile(cfads[:, :10], q, 0).tolist() for k, q in (("p90", 10), ("p50", 50), ("p10", 90))},
+        "first_year_p90_covers_opex": next((y + 1 for y in range(cfads.shape[1]) if np.percentile(cfads[:, y], 10) > 0), None),
         "required_tariff_usd_kwh": float(req_tariff),
         "affordability": {"hh_kwh_month_y3_p50": hh_kwh, "hh_bill_usd_month": None if hh_kwh is None else hh_kwh * tariff,
                           "amda_residential_arpu_usd_month": ARPU_HH[region]},

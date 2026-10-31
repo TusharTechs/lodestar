@@ -34,5 +34,41 @@
   "dist_grid_km": 0.637,
   "has_market": true,
   "has_mill": true
+ },
+ {
+  "site_id": "ke-kaj-enkorika",
+  "name": "Enkorika",
+  "country": "KE",
+  "admin1": "Kajiado",
+  "lat": -1.9628312,
+  "lon": 36.9215899,
+  "n_buildings": 409,
+  "dist_grid_km": 5.979,
+  "has_market": false,
+  "has_mill": false
+ },
+ {
+  "site_id": "ng-kd-kabai",
+  "name": "Kabai",
+  "country": "NG",
+  "admin1": "Kaduna",
+  "lat": 10.300727,
+  "lon": 7.479791,
+  "n_buildings": 234,
+  "dist_grid_km": 9.032,
+  "has_market": false,
+  "has_mill": false
+ },
+ {
+  "site_id": "ng-kn-kofar-gabas",
+  "name": "Kofar Gabas",
+  "country": "NG",
+  "admin1": "Kano",
+  "lat": 11.4336,
+  "lon": 8.77079,
+  "n_buildings": 1143,
+  "dist_grid_km": 12.145,
+  "has_market": false,
+  "has_mill": false
  }
 ]

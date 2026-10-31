@@ -1,0 +1,62 @@
+{
+ "site_id": "ke-tur-kalemunyang",
+ "name": "Kalemunyang",
+ "country": "KE",
+ "admin1": "Turkana",
+ "lat": 2.7332132,
+ "lon": 35.3685818,
+ "radius_m": 1500,
+ "buildings": {
+  "count": 1115,
+  "total_area_m2": 28452.2,
+  "median_area_m2": 18.7,
+  "n_small": 876,
+  "n_residential": 214,
+  "n_large": 25,
+  "density_per_km2": 157.7,
+  "source": "VIDA Google-Microsoft-OSM Open Buildings (source.coop), areas computed in local UTM"
+ },
+ "pois": {
+  "school": 1,
+  "health": 0,
+  "market": 0,
+  "worship": 0,
+  "shop": 0,
+  "mill": 0,
+  "telecom": 1,
+  "fuel": 0,
+  "bank": 0,
+  "water_pump": 2,
+  "other_commercial": 0
+ },
+ "grid": {
+  "dist_km": 20.599,
+  "electrified_target_frac": 0.0
+ },
+ "road": {
+  "dist_major_km": 0.011
+ },
+ "population": {
+  "worldpop": null
+ },
+ "solar": {
+  "ghi_annual": 6.359,
+  "ghi_monthly": [
+   6.589,
+   6.859,
+   6.697,
+   6.161,
+   6.321,
+   6.022,
+   5.933,
+   6.341,
+   6.842,
+   6.372,
+   6.0,
+   6.206
+  ],
+  "units": "kWh/m2/day"
+ },
+ "warnings": [],
+ "fetched_at": "2026-10-31T09:31:54+00:00"
+}

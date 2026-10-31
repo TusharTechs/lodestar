@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lodestar demand memo · {{ r.site.name }}</title>
+<style>
+  :root { --ink:#1b2a33; --muted:#5b6b75; --line:#d9e0e4; --accent:#c4552d; --band:#f6e3d8; --ok:#2a7d6e; }
+  * { box-sizing:border-box }
+  body { font:14px/1.5 "Helvetica Neue", Arial, sans-serif; color:var(--ink); background:#fff; margin:0; }
+  main { max-width:820px; margin:0 auto; padding:32px 28px 48px; }
+  header { border-bottom:3px solid var(--ink); padding-bottom:12px; margin-bottom:18px; }
+  .kicker { font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); }
+  h1 { font-size:24px; margin:4px 0 2px; }
+  h2 { font-size:13px; letter-spacing:.08em; text-transform:uppercase; margin:22px 0 8px; border-bottom:1px solid var(--line); padding-bottom:4px; }
+  .grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  .card { border:1px solid var(--line); padding:10px 12px; border-radius:4px; }
+  .card .v { font-size:22px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .card .l { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; }
+  table { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; }
+  th, td { text-align:left; padding:5px 6px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); font-weight:600; }
+  td.n, th.n { text-align:right; }
+  .src { font-size:11px; color:var(--muted); }
+  .tag { font-size:10px; padding:1px 6px; border-radius:8px; background:#eef2f4; color:var(--muted); white-space:nowrap; }
+  .tag.assumption { background:#fbeee6; color:#9a4523; }
+  .warn { border-left:3px solid var(--accent); background:#fbf3ee; padding:8px 10px; margin:6px 0; font-size:13px; }
+  .foot { margin-top:26px; font-size:11px; color:var(--muted); border-top:1px solid var(--line); padding-top:10px; }
+  .print { position:fixed; right:16px; top:16px; padding:8px 14px; background:var(--ink); color:#fff; border:0; border-radius:4px; cursor:pointer; }
+  @media print { .print { display:none } main { padding:0 } h2 { break-after:avoid } table { break-inside:avoid } }
+  @media (max-width:640px) { .grid3 { grid-template-columns:1fr } }
+</style>
+</head>
+<body>
+<button class="print" onclick="window.print()">Save as PDF</button>
+<main>
+<header>
+  <div class="kicker">Lodestar · Bankable demand memo · Forecast {{ r.ledger.forecast_id if r.ledger else '' }}</div>
+  <h1>{{ r.site.name }}{% if r.site.admin1 %}, {{ r.site.admin1 }}{% endif %} ({{ r.site.country }})</h1>
+  <div class="src">{{ '%.4f'|format(r.site.lat) }}, {{ '%.4f'|format(r.site.lon) }} · service radius {{ r.site.radius_m|num }} m · issued {{ r.ledger.issued_at if r.ledger else '' }} · model {{ r.method.model_version }}</div>
+</header>
+
+<h2>1 · Demand forecast, year 3 after commissioning</h2>
+<div class="grid3">
+  <div class="card"><div class="l">P90 (conservative)</div><div class="v">{{ r.headline.p90|mwh }} MWh/mo</div></div>
+  <div class="card"><div class="l">P50 (median)</div><div class="v">{{ r.headline.p50|mwh }} MWh/mo</div></div>
+  <div class="card"><div class="l">P10 (optimistic)</div><div class="v">{{ r.headline.p10|mwh }} MWh/mo</div></div>
+</div>
+<p>Confidence: <b>{{ r.headline.confidence }}</b> (P10 is {{ '%.1f'|format(r.headline.p10_over_p90) }}× P90). P90 is the level demand exceeds with 90% probability, as in solar energy-yield reports. The range is wide because no meter data from this site exists yet; it narrows as metered months are added (Demand Bureau).</p>
+<table>
+  <tr><th>Year</th>{% for y in r.yearly %}<th class="n">{{ y.year }}</th>{% endfor %}</tr>
+  <tr><td>P90 MWh/month</td>{% for y in r.yearly %}<td class="n">{{ y.p90|mwh }}</td>{% endfor %}</tr>
+  <tr><td>P50 MWh/month</td>{% for y in r.yearly %}<td class="n">{{ y.p50|mwh }}</td>{% endfor %}</tr>
+  <tr><td>P10 MWh/month</td>{% for y in r.yearly %}<td class="n">{{ y.p10|mwh }}</td>{% endfor %}</tr>
+</table>
+
+<h2>2 · What drives this forecast</h2>
+<table>
+  <tr><th>Driver</th><th class="n">Year-3 P50 change</th><th>Basis</th></tr>
+  {% for w in r.waterfall or [] %}
+  <tr><td>{{ w.text }}</td>
+      <td class="n">{% if w.delta_pct is defined %}{{ '%+.0f'|format(100*w.delta_pct) }}%{% else %}{{ w.p50_kwh_month|mwh }} MWh/mo{% endif %}</td>
+      <td><span class="tag {{ 'assumption' if 'assumption' in w.source else '' }}">{{ w.source }}</span></td></tr>
+  {% endfor %}
+</table>
+<p class="src">Inputs: {{ r.features.buildings.count|num }} building footprints ({{ r.features.buildings.n_residential|num }} residential-size, {{ r.features.buildings.n_large|num }} large) → about {{ r.potential_customers.household|num }} potential household and {{ r.potential_customers.sme|num }} business customers. {{ r.benchmark_note }}. Connection and consumption ramps are fitted on metered North Kivu mini-grids. Rows tagged "assumption" are team priors, not yet calibrated.</p>
+
+<h2>3 · Load and system size (sized on P50)</h2>
+{% set f = r.finance %}
+{% if f %}
+<table>
+  <tr><th>Sized on</th><th class="n">PV kWp</th><th class="n">Battery kWh</th><th class="n">CAPEX</th><th class="n">Unserved energy (median)</th><th class="n">Unserved if demand is P10</th><th class="n">Breach risk, P50-sized debt</th></tr>
+  {% for k,lab in [('p90','P90 demand'),('p50','P50 demand'),('p10','P10 demand')] %}{% set o = f.options[k] %}
+  <tr><td>{{ lab }}{% if k == f.recommended %} <b>(recommended, modular)</b>{% endif %}</td><td class="n">{{ o.pv_kwp|num }}</td><td class="n">{{ o.battery_kwh|num }}</td><td class="n">{{ o.capex_usd|usd }}</td><td class="n">{{ o.unserved_share_median|pct }}</td><td class="n">{{ o.unserved_share_p10_demand|pct }}</td><td class="n">{{ o.prob_dscr_breach_if_p50_debt|pct }}</td></tr>
+  {% endfor %}
+</table>
+<p>Peak load {{ r.load_profile.peak_kw|num(1) }} kW, load factor {{ r.load_profile.load_factor|pct }} (households alone: {{ r.load_profile.load_factor_households_only|pct }}). Build modular at P50 and add capacity when metered months 6–12 track above P50.</p>
+
+<h2>4 · Lender stress test</h2>
+<div class="grid3">
+  <div class="card"><div class="l">Grant needed for {{ f.assumptions.hurdle_irr|pct }} IRR</div><div class="v">{{ f.grant_needed.p50_demand|pct }}</div><div class="src">of CAPEX ({{ f.grant_per_connection_usd|usd }} per connection) at P50 demand; {{ f.grant_needed.p90_demand|pct }} at P90</div></div>
+  <div class="card"><div class="l">Debt safe on P90 demand</div><div class="v">{{ f.safe_debt_p90_usd|usd }}</div><div class="src">{% if f.safe_debt_p90_usd > 0 %}DSCR ≥ {{ f.assumptions.dscr_covenant }}, {{ f.assumptions.debt_tenor }} yr at {{ f.assumptions.debt_rate|pct }}, {{ f.assumptions.debt_grace_years }}-yr grace{% elif f.first_year_p90_covers_opex %}P90 cash flow covers OPEX only from year {{ f.first_year_p90_covers_opex }}{% else %}P90 cash flow does not cover OPEX{% endif %}</div></div>
+  <div class="card"><div class="l">Unsubsidised tariff for {{ f.assumptions.hurdle_irr|pct }} IRR</div><div class="v">${{ '%.2f'|format(f.required_tariff_usd_kwh) }}/kWh</div><div class="src">regional average ${{ '%.2f'|format(f.region_tariff_usd_kwh) }}/kWh (AMDA 2024)</div></div>
+</div>
+<p>With a grant of {{ f.grant_share_used|pct }} of CAPEX ({{ f.grant_usd|usd }}), project IRR is {{ f.irr_distribution.p50|pct(1) }} at P50 and {{ f.irr_distribution.p90|pct(1) }} at P90 demand. Debt sized on P50 demand ({{ f.debt_p50_usd|usd }}) breaches its covenant with probability {{ f.prob_dscr_breach_if_p50_debt|pct }}{% if f.breach_below_kwh_month %}, whenever year-3 demand falls below <b>{{ f.breach_below_kwh_month|mwh }} MWh/month</b> ({{ f.breach_percentile_label }}){% endif %}; sizing on P90 avoids this. Typical household bill at P50 use: ${{ '%.2f'|format(f.affordability.hh_bill_usd_month or 0) }}/month (AMDA residential ARPU benchmark ${{ '%.2f'|format(f.affordability.amda_residential_arpu_usd_month) }}).</p>
+<p class="src">Benchmarks: AMDA Benchmarking Africa's Minigrids 2024: CAPEX ${{ f.capex_per_kwp_usd|num }}/kWp (regional four-year average), OPEX ${{ f.opex_per_customer_usd_yr|num }}/customer/yr (midpoint of $16–26), tariff ${{ '%.2f'|format(f.region_tariff_usd_kwh) }}/kWh. Assumptions: performance ratio {{ f.assumptions.performance_ratio }}, battery DoD {{ f.assumptions.battery_dod }}, collection {{ f.assumptions.collection_rate|pct }}, {{ f.assumptions.life_years }}-year life, energy held flat after year 5.</p>
+{% endif %}
+
+<h2>5 · Track record of the method</h2>
+{% if v %}{% set s = v.summary.village_sites %}
+<p>Leave-one-site-out backtest on real metered mini-grids in North Kivu, DRC (Lunanga et al. 2026, CC0), forecasting each site with none of its own meter data: actual annual energy fell inside the P90–P10 band in <b>{{ s.day0_annual_coverage|pct }}</b> of {{ s.n_site_years }} village site-years (target 80%), with median-forecast error of {{ s.day0_annual_abs_error|pct }}. This is method validation on a small public sample, not a guarantee; every Lodestar forecast is pre-registered in a public ledger and scored once meters report.</p>
+{% endif %}
+
+<h2>6 · Flags</h2>
+{% for w in r.warnings %}<div class="warn">{{ w }}</div>{% else %}<p>None.</p>{% endfor %}
+
+<div class="foot">Numbers in this memo are computed by the Lodestar model from open data; no text was generated by a language model. Data: VIDA/Google/Microsoft/OSM Open Buildings (CC-BY-4.0/ODbL), OpenStreetMap contributors (ODbL), GridFinder (CC-BY-4.0), NASA POWER, RAMP SSA load archetypes (CC-BY-4.0), AMDA 2024, Lunanga et al. 2026 (CC0).</div>
+</main>
+</body>
+</html>

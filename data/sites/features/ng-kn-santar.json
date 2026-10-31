@@ -1,0 +1,62 @@
+{
+ "site_id": "ng-kn-santar",
+ "name": "Santar",
+ "country": "NG",
+ "admin1": "Kano",
+ "lat": 12.0784,
+ "lon": 8.05399,
+ "radius_m": 1500,
+ "buildings": {
+  "count": 1759,
+  "total_area_m2": 45368.1,
+  "median_area_m2": 20.3,
+  "n_small": 1240,
+  "n_residential": 510,
+  "n_large": 9,
+  "density_per_km2": 248.8,
+  "source": "VIDA Google-Microsoft-OSM Open Buildings (source.coop), areas computed in local UTM"
+ },
+ "pois": {
+  "school": 0,
+  "health": 1,
+  "market": 0,
+  "worship": 0,
+  "shop": 0,
+  "mill": 0,
+  "telecom": 0,
+  "fuel": 0,
+  "bank": 0,
+  "water_pump": 0,
+  "other_commercial": 0
+ },
+ "grid": {
+  "dist_km": 7.426,
+  "electrified_target_frac": 0.0
+ },
+ "road": {
+  "dist_major_km": 1.994
+ },
+ "population": {
+  "worldpop": null
+ },
+ "solar": {
+  "ghi_annual": 5.999,
+  "ghi_monthly": [
+   5.549,
+   5.912,
+   6.333,
+   6.558,
+   6.451,
+   6.175,
+   5.835,
+   5.598,
+   6.102,
+   6.121,
+   5.864,
+   5.501
+  ],
+  "units": "kWh/m2/day"
+ },
+ "warnings": [],
+ "fetched_at": "2026-10-31T09:39:32+00:00"
+}

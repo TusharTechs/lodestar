@@ -1,0 +1,62 @@
+{
+ "site_id": "ke-kaj-enkorika",
+ "name": "Enkorika",
+ "country": "KE",
+ "admin1": "Kajiado",
+ "lat": -1.9628312,
+ "lon": 36.9215899,
+ "radius_m": 1500,
+ "buildings": {
+  "count": 409,
+  "total_area_m2": 21562.6,
+  "median_area_m2": 36.2,
+  "n_small": 158,
+  "n_residential": 215,
+  "n_large": 36,
+  "density_per_km2": 57.9,
+  "source": "VIDA Google-Microsoft-OSM Open Buildings (source.coop), areas computed in local UTM"
+ },
+ "pois": {
+  "school": 0,
+  "health": 0,
+  "market": 0,
+  "worship": 0,
+  "shop": 0,
+  "mill": 0,
+  "telecom": 0,
+  "fuel": 0,
+  "bank": 0,
+  "water_pump": 0,
+  "other_commercial": 0
+ },
+ "grid": {
+  "dist_km": 5.979,
+  "electrified_target_frac": 0.0
+ },
+ "road": {
+  "dist_major_km": 6.03
+ },
+ "population": {
+  "worldpop": null
+ },
+ "solar": {
+  "ghi_annual": 5.82,
+  "ghi_monthly": [
+   6.536,
+   6.861,
+   6.66,
+   5.806,
+   5.265,
+   4.738,
+   4.851,
+   5.168,
+   6.064,
+   6.102,
+   5.752,
+   6.098
+  ],
+  "units": "kWh/m2/day"
+ },
+ "warnings": [],
+ "fetched_at": "2026-10-31T09:25:55+00:00"
+}

@@ -1,0 +1,62 @@
+{
+ "site_id": "ke-wpk-rorok",
+ "name": "Rorok",
+ "country": "KE",
+ "admin1": "West Pokot",
+ "lat": 1.3695244,
+ "lon": 35.690862,
+ "radius_m": 1500,
+ "buildings": {
+  "count": 328,
+  "total_area_m2": 9416.0,
+  "median_area_m2": 19.6,
+  "n_small": 228,
+  "n_residential": 95,
+  "n_large": 5,
+  "density_per_km2": 46.4,
+  "source": "VIDA Google-Microsoft-OSM Open Buildings (source.coop), areas computed in local UTM"
+ },
+ "pois": {
+  "school": 0,
+  "health": 0,
+  "market": 0,
+  "worship": 0,
+  "shop": 0,
+  "mill": 0,
+  "telecom": 1,
+  "fuel": 0,
+  "bank": 0,
+  "water_pump": 1,
+  "other_commercial": 0
+ },
+ "grid": {
+  "dist_km": 6.191,
+  "electrified_target_frac": 0.0
+ },
+ "road": {
+  "dist_major_km": 0.053
+ },
+ "population": {
+  "worldpop": null
+ },
+ "solar": {
+  "ghi_annual": 6.039,
+  "ghi_monthly": [
+   6.408,
+   6.726,
+   6.541,
+   6.047,
+   5.995,
+   5.535,
+   5.311,
+   5.694,
+   6.375,
+   6.081,
+   5.779,
+   6.023
+  ],
+  "units": "kWh/m2/day"
+ },
+ "warnings": [],
+ "fetched_at": "2026-10-31T09:30:44+00:00"
+}

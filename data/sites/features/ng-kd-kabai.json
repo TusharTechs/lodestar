@@ -1,0 +1,62 @@
+{
+ "site_id": "ng-kd-kabai",
+ "name": "Kabai",
+ "country": "NG",
+ "admin1": "Kaduna",
+ "lat": 10.300727,
+ "lon": 7.479791,
+ "radius_m": 1500,
+ "buildings": {
+  "count": 234,
+  "total_area_m2": 7485.2,
+  "median_area_m2": 22.4,
+  "n_small": 146,
+  "n_residential": 81,
+  "n_large": 7,
+  "density_per_km2": 33.1,
+  "source": "VIDA Google-Microsoft-OSM Open Buildings (source.coop), areas computed in local UTM"
+ },
+ "pois": {
+  "school": 0,
+  "health": 0,
+  "market": 0,
+  "worship": 0,
+  "shop": 0,
+  "mill": 0,
+  "telecom": 0,
+  "fuel": 0,
+  "bank": 0,
+  "water_pump": 0,
+  "other_commercial": 0
+ },
+ "grid": {
+  "dist_km": 9.032,
+  "electrified_target_frac": 0.0
+ },
+ "road": {
+  "dist_major_km": 4.469
+ },
+ "population": {
+  "worldpop": null
+ },
+ "solar": {
+  "ghi_annual": 5.629,
+  "ghi_monthly": [
+   5.694,
+   5.884,
+   6.171,
+   6.215,
+   5.931,
+   5.489,
+   4.986,
+   4.562,
+   5.256,
+   5.727,
+   5.969,
+   5.699
+  ],
+  "units": "kWh/m2/day"
+ },
+ "warnings": [],
+ "fetched_at": "2026-10-31T09:25:24+00:00"
+}

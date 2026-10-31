@@ -34,10 +34,10 @@ def productive(pois):
     return bool(pois and ((pois.get("market") or 0) > 0 or (pois.get("mill") or 0) > 0 or (pois.get("shop") or 0) >= 3))
 
 
-def pick_country(cc, per_country, max_cand, seed=1):
+def pick_country(cc, per_country, max_cand, seed=1, only_state=None, compute=False):
     rnd = random.Random(seed)
     found = []
-    states = REGIONS[cc]
+    states = [s for s in REGIONS[cc] if only_state in (None, s[1])]
     for state, code in states:
         cache = F.CACHE / f"candidates_{cc}_{code}.json"
         if cache.exists():
@@ -74,6 +74,8 @@ def pick_country(cc, per_country, max_cand, seed=1):
                 pois = None
             good.append(dict(state=state, code=code, name=name, lat=lat, lon=lon, n=n, d=d, tf=tf,
                              productive=productive(pois), pois=pois))
+            if compute:
+                run_site(f"{cc.lower()}-{code}-{slug(name)}", name, lat, lon, 1500, cc, state)
         cache.write_text(json.dumps(good))
         found += good
     # balanced selection: productive first (~half), round-robin by state
@@ -144,7 +146,12 @@ if __name__ == "__main__":
     ap.add_argument("--max-candidates", type=int, default=14)
     ap.add_argument("--force", action="store_true")
     ap.add_argument("--only", choices=["ng", "ke", "drc", "index"])
+    ap.add_argument("--state", help="CC:code, e.g. NG:kd - build candidates (and features) for one state, then exit")
     a = ap.parse_args()
+    if a.state:
+        cc, code = a.state.split(":")
+        pick_country(cc, a.per_country, a.max_candidates, only_state=code, compute=True)
+        sys.exit(0)
     if a.only in (None, "drc"): drc_sites(a.force)
     for cc in ("NG", "KE"):
         if a.only in (None, cc.lower()):

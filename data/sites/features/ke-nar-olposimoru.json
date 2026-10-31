@@ -1,0 +1,62 @@
+{
+ "site_id": "ke-nar-olposimoru",
+ "name": "Olposimoru",
+ "country": "KE",
+ "admin1": "Narok",
+ "lat": -1.8069093,
+ "lon": 35.4954397,
+ "radius_m": 1500,
+ "buildings": {
+  "count": 709,
+  "total_area_m2": 23867.2,
+  "median_area_m2": 22.6,
+  "n_small": 470,
+  "n_residential": 215,
+  "n_large": 24,
+  "density_per_km2": 100.3,
+  "source": "VIDA Google-Microsoft-OSM Open Buildings (source.coop), areas computed in local UTM"
+ },
+ "pois": {
+  "school": 1,
+  "health": 0,
+  "market": 0,
+  "worship": 0,
+  "shop": 0,
+  "mill": 0,
+  "telecom": 0,
+  "fuel": 0,
+  "bank": 0,
+  "water_pump": 0,
+  "other_commercial": 0
+ },
+ "grid": {
+  "dist_km": 13.852,
+  "electrified_target_frac": 0.0
+ },
+ "road": {
+  "dist_major_km": 12.846
+ },
+ "population": {
+  "worldpop": null
+ },
+ "solar": {
+  "ghi_annual": 6.086,
+  "ghi_monthly": [
+   6.349,
+   6.74,
+   6.655,
+   6.098,
+   5.827,
+   5.389,
+   5.507,
+   5.778,
+   6.308,
+   6.402,
+   5.997,
+   6.023
+  ],
+  "units": "kWh/m2/day"
+ },
+ "warnings": [],
+ "fetched_at": "2026-10-31T09:35:40+00:00"
+}

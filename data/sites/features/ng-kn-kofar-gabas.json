@@ -1,0 +1,62 @@
+{
+ "site_id": "ng-kn-kofar-gabas",
+ "name": "Kofar Gabas",
+ "country": "NG",
+ "admin1": "Kano",
+ "lat": 11.4336,
+ "lon": 8.77079,
+ "radius_m": 1500,
+ "buildings": {
+  "count": 1143,
+  "total_area_m2": 39039.2,
+  "median_area_m2": 26.8,
+  "n_small": 646,
+  "n_residential": 476,
+  "n_large": 21,
+  "density_per_km2": 161.7,
+  "source": "VIDA Google-Microsoft-OSM Open Buildings (source.coop), areas computed in local UTM"
+ },
+ "pois": {
+  "school": 0,
+  "health": 0,
+  "market": 0,
+  "worship": 0,
+  "shop": 0,
+  "mill": 0,
+  "telecom": 0,
+  "fuel": 0,
+  "bank": 0,
+  "water_pump": 0,
+  "other_commercial": 0
+ },
+ "grid": {
+  "dist_km": 12.145,
+  "electrified_target_frac": 0.0
+ },
+ "road": {
+  "dist_major_km": 3.069
+ },
+ "population": {
+  "worldpop": null
+ },
+ "solar": {
+  "ghi_annual": 5.873,
+  "ghi_monthly": [
+   5.683,
+   6.002,
+   6.328,
+   6.404,
+   6.227,
+   5.879,
+   5.502,
+   5.184,
+   5.807,
+   5.967,
+   5.915,
+   5.607
+  ],
+  "units": "kWh/m2/day"
+ },
+ "warnings": [],
+ "fetched_at": "2026-10-31T09:26:51+00:00"
+}

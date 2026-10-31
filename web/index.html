@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lodestar · Bankable mini-grid demand</title>
+<meta name="description" content="Demand forecasts with P90/P50/P10 ranges, growth curves and lender stress tests for any unelectrified village, built on open data and validated against metered mini-grids.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+<link href="style.css" rel="stylesheet">
+</head>
+<body>
+<header class="top">
+  <div class="brand"><span class="star">✦</span> Lodestar <span class="tag">Bankable demand for mini-grids</span></div>
+  <nav id="tabs">
+    <button data-tab="explore" class="on">Explore</button>
+    <button data-tab="validation">Validation</button>
+    <button data-tab="bureau">Demand Bureau</button>
+    <button data-tab="ledger">Forecast ledger</button>
+    <button data-tab="method">Method</button>
+  </nav>
+</header>
+
+<section id="explore" class="tab on">
+  <div class="mapcol">
+    <div id="map"></div>
+    <div class="sitelist" id="sitelist"></div>
+    <div class="maphint">Pick a village, or <b>click anywhere</b> on the map to forecast a new location (takes 1–4 min: footprints, OpenStreetMap and NASA POWER are fetched live).</div>
+  </div>
+  <div class="reportcol" id="report">
+    <div class="empty">
+      <h1>What P90 did for solar finance, Lodestar does for mini-grid demand.</h1>
+      <p>Pick a village on the map. You get a demand forecast with a range, a 5-year growth curve, the drivers in plain language, a load profile and system size, and a lender stress test, all from open data.</p>
+      <p class="muted">The three North Kivu (DRC) sites have real metered data. Their forecasts are made <i>without</i> it, then compared.</p>
+    </div>
+  </div>
+</section>
+
+<section id="validation" class="tab"><div class="page" id="valpage">Loading…</div></section>
+<section id="bureau" class="tab"><div class="page" id="bureaupage"></div></section>
+<section id="ledger" class="tab"><div class="page" id="ledgerpage"></div></section>
+<section id="method" class="tab"><div class="page" id="methodpage"></div></section>
+
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
