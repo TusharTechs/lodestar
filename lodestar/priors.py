@@ -24,7 +24,14 @@ AMDA_TARIFF = {"east_south": 0.40, "west_central": 0.25}
 # A lognormal whose P10-P90 range spans 7x has sigma = ln(7) / (2 * 1.2816).
 SIGMA_SEVENFOLD = float(np.log(7) / (2 * 1.2816))
 
-FLOORS = {"R": 0.30, "k": 0.40, "t0": 8.0, "Q": 0.35, "a": 0.25, "tau": 0.80}
+# Minimum prior spreads. With only a handful of metered sites the between-site spread
+# is poorly estimated, so it is floored. Set so that leave-one-site-out P90-P10
+# coverage on the village-scale sites is ~80% (calibration, disclosed in the report).
+FLOORS = {"R": 0.60, "k": 0.60, "t0": 15.0, "Q": 0.50, "a": 0.25, "tau": 0.80}
+# Observation noise (log scale) used when updating on metered months, and the
+# month-to-month noise added when scoring individual metered months.
+OBS_SIGMA = {"conn": 0.30, "q": 0.35}
+MONTH_NOISE = 0.20
 
 
 def fit_site(p: SitePanel) -> dict[str, dict[str, float]]:

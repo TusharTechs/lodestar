@@ -83,11 +83,14 @@ class Draws:
 
 
 def ramp_shape(t, k, t0):
-    """Normalised logistic: 0 at commissioning (t=0), tends to 1."""
+    """Logistic uptake share relative to the ceiling R.
+
+    Not forced to zero at commissioning: many sites sign customers up before
+    commissioning (Mutwanga had 11% of households connected in month 1), which a
+    negative or small t0 represents.
+    """
     t = np.asarray(t, float)
-    l0 = 1.0 / (1.0 + np.exp(k * t0))
-    lt = 1.0 / (1.0 + np.exp(-k * (t - t0)))
-    return np.clip((lt - l0) / (1.0 - l0), 1e-6, 1.0)
+    return np.clip(1.0 / (1.0 + np.exp(-k * (t - t0))), 1e-6, 1.0)
 
 
 def consumption_shape(t, a, tau):

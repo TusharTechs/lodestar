@@ -25,8 +25,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from lodestar.drc import load_clients, load_panels  # noqa: E402
-from lodestar.forecast import LogNormal, SiteSpec, condition, exceedance, simulate  # noqa: E402
-from lodestar.priors import AMDA_ACPU, benchmark_prior, fit_site  # noqa: E402
+from lodestar.forecast import LogNormal, SiteSpec, condition, exceedance, simulate, with_month_noise  # noqa: E402
+from lodestar.priors import AMDA_ACPU, MONTH_NOISE, OBS_SIGMA, benchmark_prior, fit_site  # noqa: E402
 
 REGION = "west_central"          # AMDA groups Central Africa with West Africa
 LEARN_MONTHS = [3, 6, 12]
@@ -48,7 +48,21 @@ def spec_for(panel, priors):
     )
 
 
-def metrics(t, actual, bands, start):
+def year_metrics(t, actual, tot, start):
+    """Error and band coverage of annual energy for the 3 years after `start` (sizing horizon)."""
+    out = []
+    for y in range(3):
+        w = (t > start + 12 * y) & (t <= start + 12 * (y + 1))
+        if w.sum() < 10:
+            continue
+        ys, act = tot[:, w].sum(1), actual[w].sum()
+        p90, p50, p10 = np.percentile(ys, [10, 50, 90])
+        out.append({"year": y + 1, "actual_mwh": act / 1e3, "p50_mwh": p50 / 1e3, "p90_mwh": p90 / 1e3,
+                    "p10_mwh": p10 / 1e3, "error": float((p50 - act) / act), "inside_band": bool(p90 <= act <= p10)})
+    return out
+
+
+def metrics(t, actual, bands, start, tot=None):
     m = (t > start) & (actual > 0)
     a, p50 = actual[m], bands["p50"][m]
     inside = (a >= bands["p90"][m]) & (a <= bands["p10"][m])
@@ -60,11 +74,17 @@ def metrics(t, actual, bands, start):
         "cum36_actual_inside_band": bool(bands["p90"][win].sum() <= actual[win].sum() <= bands["p10"][win].sum()),
         "median_band_ratio_p10_over_p90": float(np.median(bands["p10"][m] / np.maximum(bands["p90"][m], 1e-9))),
         "n_months_scored": int(m.sum()),
+        **({"years": year_metrics(t, actual, tot, start)} if tot is not None else {}),
     }
 
 
+def at(draws, t):
+    return draws.total[:, np.searchsorted(draws.months, t)]
+
+
 def bands_at(draws, t):
-    return exceedance(draws.total[:, np.searchsorted(draws.months, t)])
+    """Predictive bands for individual metered months (model + month-to-month noise)."""
+    return exceedance(with_month_noise(at(draws, t), MONTH_NOISE))
 
 
 def main():
@@ -86,13 +106,16 @@ def main():
         b0 = bands_at(d0, t)
         site = {"potential_customers": {"household": panel.pot_hh, "sme": panel.pot_sme},
                 "months_observed": int(t.max()), "fitted_parameters": fits[name],
-                "day0": metrics(t, actual, b0, 0), "learning": {}}
+                "day0": metrics(t, actual, b0, 0, at(d0, t)), "learning": {}}
         R_hh = np.exp(np.mean([np.log(f["household"]["R"]) for f in train]))
         R_sme = np.exp(np.mean([np.log(f["sme"]["R"]) for f in train]))
+        # Desk-study baseline: AMDA benchmark kWh x mature uptake of the other sites, flat from day 1
         flat = (panel.pot_hh * R_hh * AMDA_ACPU[REGION]["household"]
                 + panel.pot_sme * R_sme * AMDA_ACPU[REGION]["sme"]) * np.ones_like(t)
         m0 = actual > 0
         site["baseline_flat_wape"] = float(np.sum(np.abs(flat[m0] - actual[m0])) / np.sum(actual[m0]))
+        site["baseline_flat_years"] = [{"year": y + 1, "error": float((flat[w].sum() - actual[w].sum()) / actual[w].sum())}
+                                       for y in range(3) for w in [(t > 12 * y) & (t <= 12 * (y + 1))] if w.sum() >= 10]
         paths[name] = {"months": t.tolist(), "actual": actual.tolist(),
                        "day0": {k: v.tolist() for k, v in b0.items()}}
         for k in LEARN_MONTHS:
@@ -100,12 +123,12 @@ def main():
             n = len(om)
             obs = {"conn.household": panel.conn_hh[:n], "conn.sme": panel.conn_sme[:n],
                    "q.household": panel.kwh_hh[:n], "q.sme": panel.kwh_sme[:n]}
-            dk, diag = condition(d0, obs, om)
+            dk, diag = condition(d0, obs, om, sigma=OBS_SIGMA)
             bk = bands_at(dk, t)
             last = actual[n - 1]
             mm = (t > k) & (actual > 0)
             site["learning"][str(k)] = {
-                **metrics(t, actual, bk, k),
+                **metrics(t, actual, bk, k, at(dk, t)),
                 "baseline_persistence_wape": float(np.sum(np.abs(last - actual[mm])) / np.sum(actual[mm])),
                 "update_diagnostics": diag,
             }
@@ -137,6 +160,10 @@ def main():
             **{f"after_{k}m_wape": mean(lambda s, k=k: s["learning"][str(k)]["wape"], sites) for k in LEARN_MONTHS},
             **{f"after_{k}m_coverage": mean(lambda s, k=k: s["learning"][str(k)]["coverage_p90_p10"], sites) for k in LEARN_MONTHS},
             **{f"persistence_after_{k}m_wape": mean(lambda s, k=k: s["learning"][str(k)]["baseline_persistence_wape"], sites) for k in LEARN_MONTHS},
+            "day0_annual_abs_error": float(np.mean([abs(y["error"]) for s in sites for y in out["sites"][s]["day0"]["years"]])),
+            "day0_annual_coverage": float(np.mean([y["inside_band"] for s in sites for y in out["sites"][s]["day0"]["years"]])),
+            "baseline_flat_annual_abs_error": float(np.mean([abs(y["error"]) for s in sites for y in out["sites"][s]["baseline_flat_years"]])),
+            "n_site_years": int(sum(len(out["sites"][s]["day0"]["years"]) for s in sites)),
         }
     OUT_JSON.parent.mkdir(parents=True, exist_ok=True)
     OUT_JSON.write_text(json.dumps({"results": out, "paths": paths}, indent=1))
