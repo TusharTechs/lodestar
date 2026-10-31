@@ -147,6 +147,12 @@ function renderReport(r, prior) {
     <div class="kpi"><div class="l">Peak load · P50</div><div class="v">${fmt(r.load_profile.peak_kw)} kW</div><div class="s">load factor ${pct(r.load_profile.load_factor)}</div></div>
   </div>
   ${r.update ? (() => { const ch = 1 - (h.p10 / h.p90) / (prior.p10 / prior.p90); return `<div class="narrow"><b>Updated with ${r.update.months_used} metered months.</b> Year-3 band P90–P10: ${mwh(prior.p90)}–${mwh(prior.p10)} → <b>${mwh(h.p90)}–${mwh(h.p10)} MWh/month</b>; P50 ${mwh(prior.p50)} → <b>${mwh(h.p50)}</b>. ${ch > 0 ? `Relative band width ${pct(ch)} narrower.` : `The band stays wide: early months alone cannot yet tell a slow ramp from a low ceiling.`}</div>`; })() : ""}
+  ${r.basis ? `<div class="card"><h3>How this forecast was made</h3>
+    <ol class="small" style="margin:6px 0 4px;padding-left:20px">${r.basis.steps.map(s => `<li><b>${esc(s.title)}.</b> ${esc(s.text)}</li>`).join("")}</ol>
+    <details class="small"><summary style="cursor:pointer">Inputs, sources and how current they are</summary>
+      <table class="t" style="margin-top:6px"><tr><th>Input</th><th>This site</th><th>Source</th><th>As of</th></tr>
+      ${r.basis.inputs.map(i => `<tr><td>${esc(i.label)}</td><td>${esc(i.value)}</td><td>${esc(i.source)}</td><td>${esc(i.as_of || "")}</td></tr>`).join("")}</table>
+      <p class="src">Site data fetched ${esc((r.basis.site_data_fetched_at || "").slice(0, 10))}${r.basis.site_data_age_days != null ? ` (${r.basis.site_data_age_days} days ago)` : ""}. Service-wide accuracy and freshness: <a href="#ledger" onclick="showTab('ledger');return false">Track record</a>.</p></details></div>` : ""}
   <div class="card"><h3>Demand growth, months 0–60 after commissioning</h3>
     <p class="lede">Monthly site energy (MWh). Dark band P75–P25, light band P90–P10.${isDrc ? ' <b>Black line: actual metered demand</b>, which this forecast did not see.' : ""}</p>
     <div class="chart"><canvas id="fan"></canvas></div>
@@ -434,10 +440,25 @@ async function renderPortfolio() {
 
 /* ---------------- ledger ---------------- */
 async function renderLedger() {
-  const el = $("#ledgerpage"); const L = await get("/api/ledger");
-  el.innerHTML = `<h1>Forecast ledger</h1>
-  <p>Weather forecasters and clinical-trial registries earn trust the same way: commit to the prediction <i>before</i> the outcome is known, then score it in public. Every forecast Lodestar issues is hashed and timestamped here. When the site's meters report, the forecast is scored against them automatically (the DRC backtest shows the scoring).</p>
-  <div class="card"><table class="t"><tr><th>Forecast ID</th><th>Issued (UTC)</th><th>Site</th><th class="n">Year-3 P90</th><th class="n">P50</th><th class="n">P10</th><th>Status</th></tr>
+  const el = $("#ledgerpage");
+  const [L, M] = await Promise.all([get("/api/ledger"), get("/api/metrics")]);
+  const A = M.accuracy, T = M.track_record;
+  el.innerHTML = `<h1>Track record</h1>
+  <p>A forecasting service should be judged on its record, not its claims. These are the numbers we track and publish: how accurate the forecasts have been against real meters, every forecast we have issued, and how current each data input is.</p>
+  <div class="grid4">
+    <div class="kpi main"><div class="l">Real demand inside our range</div><div class="v">${pct(A.annual_coverage_p90_p10)}</div><div class="s">${A.n_site_years} site-years, target ${pct(A.target_coverage)} · ${pct(A.monthly_coverage_p90_p10)} of months</div></div>
+    <div class="kpi"><div class="l">Forecast error (P50, annual)</div><div class="v">${pct(A.annual_abs_error_p50)}</div><div class="s">year 3: ${Object.entries(A.y3_error_by_site).map(([n, e]) => `${n} ${e >= 0 ? "+" : ""}${pct(e)}`).join(", ")}</div></div>
+    <div class="kpi"><div class="l">Error after 6 metered months</div><div class="v">${pct(A.after_6m_meters_error)}</div><div class="s">vs ${pct(A.persistence_after_6m_error)} for "carry the last month forward"</div></div>
+    <div class="kpi"><div class="l">Forecasts issued</div><div class="v">${T.forecasts_issued}</div><div class="s">${T.pre_registered_awaiting_meters} awaiting meters · ${T.scored_ledger_forecasts} scored · ${T.superseded} superseded</div></div>
+  </div>
+  <p class="src">${esc(A.method)}. Last validated ${esc((A.last_validated || "").slice(0, 16).replace("T", " "))} UTC. Model ${esc(M.model.version)}.</p>
+  <div class="card"><h3>Data freshness</h3><p class="lede">Every input has a refresh target. "Due" means it is older than its target and the next model release should update it.</p>
+    <table class="t"><tr><th>Input</th><th>Source</th><th>As of</th><th class="n">Age</th><th class="n">Refresh every</th><th>Status</th></tr>
+    ${M.freshness.map(f => `<tr><td>${esc(f.input)}</td><td>${esc(f.source)}</td><td>${esc(f.as_of || "")}</td><td class="n">${f.age_days == null ? "n/a" : f.age_days < 60 ? f.age_days + " days" : (f.age_days / 365).toFixed(1) + " yrs"}</td><td class="n">${f.refresh_every_days >= 365 ? (f.refresh_every_days / 365).toFixed(0) + " yr" : Math.round(f.refresh_every_days / 30) + " mo"}</td><td><span class="cat ${f.status === "fresh" ? "rbf" : "grid"}">${f.status}</span></td></tr>`).join("")}</table>
+    <p class="src">The metered growth curves are the input most in need of refresh: the public panel ends in December 2024. The Demand Bureau is how operators keep it current, each quarter.</p></div>
+  <div class="card"><h3>Forecast ledger</h3>
+    <p class="lede">Weather forecasters and clinical-trial registries earn trust the same way: commit to the prediction <i>before</i> the outcome is known, then score it in public. Every forecast is hashed and timestamped here and scored when the site's meters report. Replaced forecasts are marked, never deleted.</p>
+    <table class="t"><tr><th>Forecast ID</th><th>Issued (UTC)</th><th>Site</th><th class="n">Year-3 P90</th><th class="n">P50</th><th class="n">P10</th><th>Status</th></tr>
   ${L.map(x => `<tr><td><code>${x.forecast_id}</code></td><td>${esc(x.issued_at)}</td><td><a href="#explore/${x.site_id}" onclick="openSite('${x.site_id}');return false">${esc(x.name)}</a></td><td class="n">${mwh(x.y3_p90)}</td><td class="n">${mwh(x.y3_p50)}</td><td class="n">${mwh(x.y3_p10)}</td><td>${esc(x.status)}</td></tr>`).join("")}</table>
   <p class="src">MWh/month. The ID is the first 16 hex characters of the SHA-256 of the site and its forecast numbers.</p></div>`;
 }

@@ -1,6 +1,6 @@
-{"forecast_id": "547655f112ac4b1b", "issued_at": "2026-10-31T09:53:42+00:00", "site_id": "cd-nk-goma", "name": "Goma", "y3_p90": 52394.4, "y3_p50": 152523.6, "y3_p10": 437162.4, "status": "awaiting metered data"}
-{"forecast_id": "4846ecd1a47f6d5a", "issued_at": "2026-10-31T09:53:43+00:00", "site_id": "cd-nk-lubero", "name": "Lubero", "y3_p90": 8311.9, "y3_p50": 19923.4, "y3_p10": 52766.0, "status": "awaiting metered data"}
-{"forecast_id": "d1b64dc0fd5c9199", "issued_at": "2026-10-31T09:53:44+00:00", "site_id": "cd-nk-mutwanga", "name": "Mutwanga", "y3_p90": 6511.1, "y3_p50": 15225.0, "y3_p10": 40982.4, "status": "awaiting metered data"}
+{"forecast_id": "547655f112ac4b1b", "issued_at": "2026-10-31T09:53:42+00:00", "site_id": "cd-nk-goma", "name": "Goma", "y3_p90": 52394.4, "y3_p50": 152523.6, "y3_p10": 437162.4, "status": "superseded by 1062d454ca0e416d"}
+{"forecast_id": "4846ecd1a47f6d5a", "issued_at": "2026-10-31T09:53:43+00:00", "site_id": "cd-nk-lubero", "name": "Lubero", "y3_p90": 8311.9, "y3_p50": 19923.4, "y3_p10": 52766.0, "status": "superseded by c7d1e42cd8ade782"}
+{"forecast_id": "d1b64dc0fd5c9199", "issued_at": "2026-10-31T09:53:44+00:00", "site_id": "cd-nk-mutwanga", "name": "Mutwanga", "y3_p90": 6511.1, "y3_p50": 15225.0, "y3_p10": 40982.4, "status": "superseded by 00fcb20b752d90f6"}
 {"forecast_id": "073c5af40be4fefb", "issued_at": "2026-10-31T09:53:45+00:00", "site_id": "ke-kaj-enkorika", "name": "Enkorika", "y3_p90": 96.0, "y3_p50": 295.4, "y3_p10": 866.5, "status": "awaiting metered data"}
 {"forecast_id": "4dac61f1ad1a6c12", "issued_at": "2026-10-31T09:53:45+00:00", "site_id": "ke-kaj-eremit", "name": "Eremit", "y3_p90": 35.4, "y3_p50": 113.7, "y3_p10": 355.2, "status": "awaiting metered data"}
 {"forecast_id": "902c780c7bad8b93", "issued_at": "2026-10-31T09:53:46+00:00", "site_id": "ke-kit-mathuki-centre", "name": "Mathuki Centre", "y3_p90": 2057.7, "y3_p50": 2721.8, "y3_p10": 3884.5, "status": "awaiting metered data"}
@@ -18,3 +18,6 @@
 {"forecast_id": "b541ad879afbc873", "issued_at": "2026-10-31T09:53:55+00:00", "site_id": "ng-kn-santar", "name": "Santar", "y3_p90": 500.9, "y3_p50": 1255.2, "y3_p10": 3958.7, "status": "awaiting metered data"}
 {"forecast_id": "4aa496abab705daf", "issued_at": "2026-10-31T09:53:55+00:00", "site_id": "ng-ni-mayaki", "name": "Mayaki", "y3_p90": 748.2, "y3_p50": 2362.1, "y3_p10": 7209.9, "status": "awaiting metered data"}
 {"forecast_id": "b9eb7b29cacb8e11", "issued_at": "2026-10-31T09:53:56+00:00", "site_id": "ng-ni-shanla", "name": "Shanla", "y3_p90": 90.7, "y3_p50": 299.1, "y3_p10": 963.0, "status": "awaiting metered data"}
+{"forecast_id": "1062d454ca0e416d", "issued_at": "2026-10-31T16:19:08+00:00", "site_id": "cd-nk-goma", "name": "Goma", "y3_p90": 49286.0, "y3_p50": 139422.4, "y3_p10": 398335.4, "status": "scored against historical meters (backtest)"}
+{"forecast_id": "c7d1e42cd8ade782", "issued_at": "2026-10-31T16:19:08+00:00", "site_id": "cd-nk-lubero", "name": "Lubero", "y3_p90": 9971.7, "y3_p50": 25022.3, "y3_p10": 67456.6, "status": "scored against historical meters (backtest)"}
+{"forecast_id": "00fcb20b752d90f6", "issued_at": "2026-10-31T16:19:09+00:00", "site_id": "cd-nk-mutwanga", "name": "Mutwanga", "y3_p90": 5315.8, "y3_p50": 11940.4, "y3_p10": 32422.0, "status": "scored against historical meters (backtest)"}

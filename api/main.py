@@ -215,6 +215,52 @@ def validation():
     return json.loads(VALIDATION.read_text())
 
 
+def _age_days(as_of: str | None):
+    import datetime as _dt
+    if not as_of:
+        return None
+    parts = (as_of + "-12-31")[:10] if len(as_of) == 4 else (as_of + "-28")[:10] if len(as_of) == 7 else as_of[:10]
+    return (_dt.date.today() - _dt.date.fromisoformat(parts)).days
+
+
+@app.get("/api/metrics")
+def metrics():
+    """Service metrics a user can check before trusting a forecast: accuracy, track record, data freshness."""
+    v = json.loads(VALIDATION.read_text())["results"] if VALIDATION.exists() else {}
+    e = (v.get("summary") or {}).get("end_to_end_village", {})
+    led = ledger()
+    feats = [json.loads(f.read_text()) for f in (SITES / "features").glob("*.json")]
+    fetched = sorted(f["fetched_at"] for f in feats if f.get("fetched_at"))
+    fresh = []
+    for key, src in R.SOURCES.items():
+        as_of = src.get("as_of") or (fetched[0][:10] if fetched else None)
+        age = _age_days(as_of)
+        status = "fresh" if age is not None and age <= src["refresh_days"] else "due"
+        fresh.append({"input": src["label"], "source": src["source"], "as_of": as_of, "age_days": age,
+                      "refresh_every_days": src["refresh_days"], "status": status})
+    return {
+        "accuracy": {
+            "method": "Leave-one-site-out on metered DR Congo village mini-grids, open data only, no site meter data",
+            "annual_coverage_p90_p10": e.get("annual_coverage"), "monthly_coverage_p90_p10": e.get("monthly_coverage"),
+            "annual_abs_error_p50": e.get("annual_abs_error"), "n_site_years": e.get("n_site_years"),
+            "y3_error_by_site": {n: next((y["error"] for y in s["years"] if y["year"] == 3), None)
+                                 for n, s in (v.get("end_to_end") or {}).items()},
+            "after_6m_meters_error": e.get("after_6m_wape"), "persistence_after_6m_error": e.get("persistence_after_6m_wape"),
+            "target_coverage": 0.8, "last_validated": v.get("run_at"),
+        },
+        "track_record": {
+            "forecasts_issued": len(led),
+            "pre_registered_awaiting_meters": sum(1 for x in led if x["status"].startswith("awaiting")),
+            "scored_ledger_forecasts": sum(1 for x in led if x["status"].startswith("scored")),
+            "superseded": sum(1 for x in led if x["status"].startswith("superseded")),
+            "scored_against_meters": e.get("n_site_years"),
+            "scored_note": "Backtest site-years on the DRC panel. Live ledger forecasts are scored when their sites report meters.",
+        },
+        "freshness": fresh,
+        "model": {"version": "lodestar-0.3", "draws_per_forecast": DRAWS},
+    }
+
+
 @app.get("/api/ledger")
 def ledger():
     if not R.LEDGER.exists():

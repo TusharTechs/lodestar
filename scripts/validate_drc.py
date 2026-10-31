@@ -239,6 +239,8 @@ def main():
             "baseline_flat_annual_abs_error": float(np.mean([abs(y["error"]) for s in sites for y in out["sites"][s]["baseline_flat_years"]])),
             "n_site_years": int(sum(len(out["sites"][s]["day0"]["years"]) for s in sites)),
         }
+    import datetime as _dt
+    out["run_at"] = _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds")
     OUT_JSON.parent.mkdir(parents=True, exist_ok=True)
     OUT_JSON.write_text(json.dumps({"results": out, "paths": paths}, indent=1))
     plot(paths)

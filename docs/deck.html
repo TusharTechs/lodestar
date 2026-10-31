@@ -47,13 +47,13 @@ img { display: block; }
   <h2>Click a village. Get a bankable demand forecast.</h2>
   <div class="grid" style="grid-template-columns:3.6in 1fr;gap:22px">
     <div><img src="img/footprints_mutwanga.png" style="width:3.6in;height:3.6in;object-fit:cover;border-radius:6px">
-      <p class="xs muted" style="margin:4px 0 0">Mutwanga (DRC): 11,400 open building footprints → ~4,600 potential households, 377 businesses; schools, clinic, market, mill from OpenStreetMap.</p></div>
-    <div style="display:flex;gap:14px;align-items:flex-start"><img src="img/app_report.png" style="height:4.15in;border-radius:6px;border:1px solid #dfe5e8"><div class="small"><p style="margin-top:0"><b>Year-3 demand 15.2 MWh/month</b> (P90 6.5, P10 41.0), forecast from footprints and OpenStreetMap alone.</p><p>The black line is the site's <b>real metered demand</b>, which the model never saw.</p><p class="muted">Below in the report: driver waterfall, load profile, sizing options, IRR distribution and cash flow at P90/P50/P10.</p></div></div>
+      <p class="xs muted" style="margin:4px 0 0">Mutwanga (DRC): 11,400 open building footprints → ~3,800 potential households, 358 businesses; schools, clinic, market, mill from OpenStreetMap.</p></div>
+    <div style="display:flex;gap:14px;align-items:flex-start"><img src="img/app_report.png" style="height:4.15in;border-radius:6px;border:1px solid #dfe5e8"><div class="small"><p style="margin-top:0"><b>Year-3 demand 11.9 MWh/month</b> (P90 5.3, P10 32.4), forecast from footprints and OpenStreetMap alone; it learns only from the other metered sites.</p><p>The black line is the site's <b>real metered demand</b>, which the model never saw.</p><p class="muted">Below in the report: driver waterfall, load profile, sizing options, IRR distribution and cash flow at P90/P50/P10.</p></div></div>
   </div>
   <div class="grid small" style="grid-template-columns:repeat(4,1fr);gap:12px;margin-top:12px">
     <div><b>Range, not a point:</b> P90/P50/P10 from 20,000 Monte Carlo draws</div>
     <div><b>Growth:</b> connections × kWh per connection, months 0–60</div>
-    <div><b>Drivers in plain language</b>, each tagged calibrated / benchmark / assumption</div>
+    <div><b>Explained in plain words:</b> what each forecast is built from, with every source dated and every driver tagged</div>
     <div><b>Lender view:</b> sizing, grant needed, debt safe on P90, memo, HOMER 8760</div>
   </div>
   <div class="foot"><span>Open data only: VIDA/Google/Microsoft/OSM buildings · OpenStreetMap · GridFinder · NASA POWER · RAMP archetypes · AMDA 2024</span><span>2 / 5</span></div>

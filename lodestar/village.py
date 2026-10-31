@@ -40,8 +40,31 @@ MAX_PER_ANCHOR_TYPE = 3
 
 
 @lru_cache(maxsize=1)
+def drc_fits_by_site():
+    return {name: fit_site(p) for name, p in load_panels().items()}
+
+
 def drc_fits():
-    return [fit_site(p) for p in load_panels().values()]
+    return list(drc_fits_by_site().values())
+
+
+# The metered DRC sites are shown next to their real meters, so their own forecasts must not learn
+# from their own data: growth curves come from the other sites only (same as the validation).
+DRC_SITE = {"cd-nk-goma": "Goma", "cd-nk-lubero": "Lubero", "cd-nk-mutwanga": "Mutwanga"}
+# Households per dwelling-size building and firms per large building, measured site by site
+# (census counts / footprint counts within the 2 km service radius)
+_DRC_RATIOS = {"Lubero": (0.34, 1.03), "Mutwanga": (0.50, 1.14)}
+
+
+def held_out(feat: dict) -> dict:
+    """Overrides that keep a metered site's own data out of its forecast."""
+    name = DRC_SITE.get(feat.get("site_id"))
+    if not name:
+        return {}
+    others = [n for n in _DRC_RATIOS if n != name]
+    hh = float(np.exp(np.mean([np.log(_DRC_RATIOS[n][0]) for n in others])))
+    sme = float(np.exp(np.mean([np.log(_DRC_RATIOS[n][1]) for n in others])))
+    return {"fits": [f for n, f in drc_fits_by_site().items() if n != name], "hh_ratio": hh, "sme_ratio": sme}
 
 
 @lru_cache(maxsize=1)
@@ -85,7 +108,10 @@ def build_spec(feat: dict, use: set[str] | None = None, horizon: int = 60, fits:
     """Spec for a site. `use` limits which drivers/anchors are switched on (for the waterfall).
     `fits`, `hh_ratio`, `sme_ratio` can be overridden for leave-one-site-out validation."""
     region = REGION_OF.get(feat.get("country"), "west_central")
-    fits = fits or drc_fits()
+    if fits is None:
+        ho = held_out(feat)
+        fits = ho.get("fits") or drc_fits()
+        hh_ratio, sme_ratio = ho.get("hh_ratio", hh_ratio), ho.get("sme_ratio", sme_ratio)
     priors = {s: benchmark_prior(fits, s, region) for s in ("household", "sme")}
     b = feat["buildings"]
     pot = {"household": max((b["n_residential"] + b["n_small"]) * hh_ratio, 5.0),

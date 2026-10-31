@@ -53,8 +53,9 @@ Reproduce with `python scripts/validate_drc.py`. It writes `data/derived/validat
   - **Capacity mismatch at year 3 falls 72%** (155 → 44 kWp against hindsight).
   - **Mutwanga's desk build would have been 37% oversized; Lodestar's plan +6%.** Lubero: desk −31% (16% of demand unserved), Lodestar +11% (2% unserved).
   - **Trade-off:** Lodestar's plan invests more in total, because it serves the demand the desk estimate missed, and leaves more demand unserved at Mutwanga in year 1.
-- **Affordability.** Right-sizing at P50 instead of the optimistic P10 cuts the cost of power by **about 49%** on average across the 20 villages (Mutwanga $0.91 vs $1.85/kWh).
+- **Affordability.** Right-sizing at P50 instead of the optimistic P10 cuts the cost of power by **about 49%** on average across the 20 villages (Lubero $0.89 vs $1.80/kWh).
 - **Bankability against real programmes.** With a Nigeria NEP-style grant of $600/connection (AMDA 2024 reports $350–600), the mini-grid candidates need **$0.20–0.40/kWh** for a 12% IRR. That is in line with AMDA's observed tariffs ($0.24–0.40). Unsubsidised, at AMDA-benchmark costs, they would need about $1/kWh.
+- **Every forecast explains itself and the service tracks itself.** Each report opens with "How this forecast was made" in plain words, with every input's source and date. The **Track record** tab (`/api/metrics`) publishes accuracy against meters, all issued forecasts, and the age of each data input against a refresh target. Inputs past their target show as "due": GridFinder (2020) and the public meter panel (ends Dec 2024).
 - **Portfolio screening for RBF programmes** (`/api/portfolio`). Of the 20 villages:
   - 1 is bankable with an RBF grant;
   - 4 need an anchor load;

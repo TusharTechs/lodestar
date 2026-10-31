@@ -54,6 +54,10 @@
   <tr><td>P10 MWh/month</td>{% for y in r.yearly %}<td class="n">{{ y.p10|mwh }}</td>{% endfor %}</tr>
 </table>
 
+{% if r.basis %}<h2>How this forecast was made</h2>
+<ol style="margin:4px 0;padding-left:18px">{% for st in r.basis.steps %}<li><b>{{ st.title }}.</b> {{ st.text }}</li>{% endfor %}</ol>
+<p class="src">Site data fetched {{ (r.basis.site_data_fetched_at or '')[:10] }}. Inputs: {% for i in r.basis.inputs %}{{ i.label }} ({{ i.source }}{% if i.as_of %}, {{ i.as_of }}{% endif %}){% if not loop.last %}; {% endif %}{% endfor %}.</p>
+{% endif %}
 <h2>2 · What drives this forecast</h2>
 <table>
   <tr><th>Driver</th><th class="n">Year-3 P50 change</th><th>Basis</th></tr>
